@@ -16,6 +16,11 @@ version:
 build:
     $version = (Get-Content -Raw VERSION).Trim(); go build "-ldflags=-H=windowsgui -X main.version=$version" -o bin/dynamicbrowser.exe ./cmd/dynamicbrowser
 
+icon:
+    foreach ($size in 16,20,22,24,28,32,36,40,44,48,56,64,128,256) { magick -background none -density ($size * 4) assets/icon.svg -strip "PNG32:internal/app/assets/icon-$size.png"; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE } }
+    magick internal/app/assets/icon-256.png internal/app/assets/icon-128.png internal/app/assets/icon-64.png internal/app/assets/icon-48.png internal/app/assets/icon-32.png internal/app/assets/icon-16.png assets/icon.ico
+    go run github.com/akavel/rsrc@v0.10.2 -arch amd64 -ico assets/icon.ico -manifest assets/app.manifest -o cmd/dynamicbrowser/icon_windows_amd64.syso
+
 # Run regression tests.
 test:
     go test ./...

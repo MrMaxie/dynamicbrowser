@@ -74,6 +74,39 @@ func TestWatchConfig(t *testing.T) {
 	wait("third", false)
 }
 
+func TestConfigChanges(t *testing.T) {
+	store := &Store{}
+	changes := store.Changes()
+	path := filepath.Join(t.TempDir(), "config.toml")
+	store.reload(path)
+	select {
+	case <-changes:
+	default:
+		t.Fatal("missing error notification")
+	}
+	if store.Status() != "Configuration: error (last valid configuration retained)" {
+		t.Fatal("missing configuration error status")
+	}
+	if err := os.WriteFile(path, []byte("custom = true\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	store.reload(path)
+	store.reload(path)
+	select {
+	case <-changes:
+	default:
+		t.Fatal("missing reload notification")
+	}
+	select {
+	case <-changes:
+		t.Fatal("reload notifications were not coalesced")
+	default:
+	}
+	if store.Status() != "Configuration: loaded" {
+		t.Fatal("configuration did not recover")
+	}
+}
+
 func TestConfigPreservesExistingFile(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "config.toml")
 	const content = "arbitrary = true\n"

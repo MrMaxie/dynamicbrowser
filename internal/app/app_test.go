@@ -1,14 +1,94 @@
 package app
 
 import (
+	"bytes"
 	"context"
+	"image/png"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 )
+
+func TestTrayIcon(t *testing.T) {
+	for _, tt := range []struct{ requested, want int }{
+		{16, 16}, {20, 20}, {24, 24}, {28, 28}, {32, 32},
+		{36, 36}, {40, 40}, {44, 44}, {48, 48}, {56, 56}, {64, 64},
+		{128, 128}, {256, 256}, {22, 22}, {23, 24}, {72, 128},
+	} {
+		data, err := trayIconForSize(tt.requested)
+		if err != nil {
+			t.Fatal(err)
+		}
+		icon, err := png.Decode(bytes.NewReader(data))
+		if err != nil {
+			t.Fatal(err)
+		}
+		bounds := icon.Bounds()
+		if bounds.Dx() != tt.want || bounds.Dy() != tt.want {
+			t.Fatalf("requested %d: icon size = %v; want %dx%d", tt.requested, bounds.Size(), tt.want, tt.want)
+		}
+		var transparent, visible bool
+		for y := bounds.Min.Y; y < bounds.Max.Y; y++ {
+			for x := bounds.Min.X; x < bounds.Max.X; x++ {
+				_, _, _, alpha := icon.At(x, y).RGBA()
+				transparent = transparent || alpha == 0
+				visible = visible || alpha > 0
+			}
+		}
+		if !transparent || !visible {
+			t.Fatalf("icon %d must have visible artwork and a transparent background", tt.want)
+		}
+	}
+	if _, err := trayIconForSize(257); err == nil {
+		t.Fatal("expected error for unsupported icon size")
+	}
+}
+
+func TestTrayQuitDrainsUpdatesWithoutBlockingUI(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	updatesDone := make(chan struct{})
+	removed := make(chan struct{})
+	var removals atomic.Int32
+	quit := trayQuit(cancel, updatesDone, func() {
+		if removals.Add(1) == 1 {
+			close(removed)
+		}
+	})
+	callbackDone := make(chan struct{})
+	go func() {
+		quit()
+		quit()
+		close(callbackDone)
+	}()
+	select {
+	case <-callbackDone:
+	case <-time.After(time.Second):
+		close(updatesDone)
+		t.Fatal("Quit blocked the UI callback while a native update was in flight")
+	}
+	if ctx.Err() == nil {
+		t.Fatal("Quit did not cancel background updates")
+	}
+	select {
+	case <-removed:
+		t.Fatal("tray removed before pending updates finished")
+	default:
+	}
+	close(updatesDone)
+	select {
+	case <-removed:
+	case <-time.After(time.Second):
+		t.Fatal("tray was not removed after updates finished")
+	}
+	if removals.Load() != 1 {
+		t.Fatal("tray removed more than once")
+	}
+}
 
 func TestCLI(t *testing.T) {
 	version, err := os.ReadFile(filepath.Join("..", "..", "VERSION"))
@@ -16,7 +96,7 @@ func TestCLI(t *testing.T) {
 		t.Fatal(err)
 	}
 	binary := filepath.Join(t.TempDir(), "dynamicbrowser.exe")
-	flags := "-X main.version=" + strings.TrimSpace(string(version))
+	flags := "-X main.version=" + strings.TrimSpace(string(version)) + " -X github.com/MrMaxie/dynamicbrowser/internal/app.instanceName=" + instanceName
 	if output, err := exec.Command("go", "build", "-ldflags", flags, "-o", binary, "../../cmd/dynamicbrowser").CombinedOutput(); err != nil {
 		t.Fatalf("build: %v\n%s", err, output)
 	}

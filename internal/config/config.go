@@ -25,9 +25,27 @@ func Path() (string, error) {
 
 // Store retains the last valid, schema-free TOML document.
 type Store struct {
-	mu     sync.RWMutex
-	values map[string]any
-	err    error
+	mu      sync.RWMutex
+	values  map[string]any
+	err     error
+	changes chan struct{}
+}
+
+// Changes returns a single-consumer stream of coalesced reload/error events.
+func (c *Store) Changes() <-chan struct{} {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.changes == nil {
+		c.changes = make(chan struct{}, 1)
+	}
+	return c.changes
+}
+
+func (c *Store) notifyLocked() {
+	select {
+	case c.changes <- struct{}{}:
+	default:
+	}
 }
 
 func (c *Store) reload(path string) {
@@ -42,6 +60,7 @@ func (c *Store) reload(path string) {
 	if err == nil {
 		c.values = values
 	}
+	c.notifyLocked()
 }
 
 // Status describes the current configuration health for the tray UI.
@@ -49,9 +68,9 @@ func (c *Store) Status() string {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 	if c.err != nil {
-		return "config.toml error. Fix the file; the last valid configuration remains active."
+		return "Configuration: error (last valid configuration retained)"
 	}
-	return "Application is running. config.toml loaded; watching for changes."
+	return "Configuration: loaded"
 }
 
 // Watch loads the configuration and watches for changes until ctx is canceled.
@@ -111,6 +130,7 @@ func Watch(ctx context.Context, path string, store *Store) (<-chan struct{}, err
 				}
 				store.mu.Lock()
 				store.err = err
+				store.notifyLocked()
 				store.mu.Unlock()
 			}
 		}

@@ -1,12 +1,9 @@
 package app
 
 import (
-	"bytes"
 	"context"
-	"image"
-	"image/color"
-	"image/png"
 	"runtime"
+	"sync"
 
 	"github.com/MrMaxie/dynamicbrowser/internal/config"
 	"github.com/gogpu/systray"
@@ -26,6 +23,7 @@ func Run() error {
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	store := &config.Store{}
+	changes := store.Changes()
 	done, err := config.Watch(ctx, path, store)
 	if err != nil {
 		cancel()
@@ -33,31 +31,51 @@ func Run() error {
 	}
 	defer func() { cancel(); <-done }()
 
+	// The native window and its message loop must use the same OS thread.
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
 	icon, err := trayIcon()
 	if err != nil {
 		return err
 	}
-	// The native window and its message loop must use the same OS thread.
-	runtime.LockOSThread()
-	defer runtime.UnlockOSThread()
 	tray := systray.New().SetIcon(icon).SetTooltip("dynamicbrowser — running")
 	menu := systray.NewMenu()
-	status := func() { tray.ShowNotification("dynamicbrowser", store.Status()) }
-	menu.Add("Configuration status", status)
+	status := menu.Add(store.Status(), nil)
+	status.SetDisabled(true)
+	statusDone := make(chan struct{})
 	menu.AddSeparator()
-	menu.Add("Quit", tray.Remove)
-	tray.SetMenu(menu).OnClick(status).Show()
+	menu.Add("Quit", trayQuit(cancel, statusDone, tray.Remove))
+	tray.SetMenu(menu)
+	if err := bindTrayMenu(tray); err != nil {
+		tray.Remove()
+		return err
+	}
+	go func() {
+		defer close(statusDone)
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-changes:
+				status.SetLabel(store.Status())
+			}
+		}
+	}()
+	defer func() { cancel(); <-statusDone }()
+	tray.Show()
 	return tray.Run()
 }
 
-func trayIcon() ([]byte, error) {
-	icon := image.NewNRGBA(image.Rect(0, 0, 32, 32))
-	for y := 4; y < 28; y++ {
-		for x := 4; x < 28; x++ {
-			icon.SetNRGBA(x, y, color.NRGBA{R: 40, G: 180, B: 100, A: 255})
-		}
+func trayQuit(cancel context.CancelFunc, updatesDone <-chan struct{}, remove func()) func() {
+	var once sync.Once
+	return func() {
+		once.Do(func() {
+			cancel()
+			// Keep the UI loop pumping while an in-flight native menu update completes.
+			go func() {
+				<-updatesDone
+				remove()
+			}()
+		})
 	}
-	var data bytes.Buffer
-	err := png.Encode(&data, icon)
-	return data.Bytes(), err
 }

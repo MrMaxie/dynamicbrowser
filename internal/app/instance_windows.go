@@ -6,12 +6,10 @@ import (
 	"golang.org/x/sys/windows"
 )
 
-const instanceName = `Local\dynamicbrowser.MrMaxie`
-
 // Keeping a handle open keeps the named mutex alive, including after a crash
 // until Windows closes the process handles. No lock file can become stale.
 func acquireInstance() (func(), bool, error) {
-	name, err := windows.UTF16PtrFromString(instanceName)
+	name, err := windows.UTF16PtrFromString(`Local\` + instanceName)
 	if err != nil {
 		return nil, false, err
 	}
