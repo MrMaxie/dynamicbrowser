@@ -109,9 +109,11 @@ func TestCLI(t *testing.T) {
 		defer release()
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		output, err := exec.CommandContext(ctx, binary).CombinedOutput()
-		if err != nil || len(output) != 0 {
-			t.Fatalf("duplicate: %v, output=%q", err, output)
+		for _, args := range [][]string{nil, {"--force=false"}} {
+			output, err := exec.CommandContext(ctx, binary, args...).CombinedOutput()
+			if err != nil || len(output) != 0 {
+				t.Fatalf("duplicate %v: %v, output=%q", args, err, output)
+			}
 		}
 		if _, err := os.Stat(filepath.Join(filepath.Dir(binary), "config.toml")); !os.IsNotExist(err) {
 			t.Fatalf("duplicate touched config: %v", err)
@@ -119,21 +121,35 @@ func TestCLI(t *testing.T) {
 	})
 
 	for _, tt := range []struct {
-		name    string
-		args    []string
-		want    string
-		wantErr bool
+		name         string
+		args         []string
+		want         string
+		wantContains string
+		wantErr      bool
 	}{
 		{name: "version", args: []string{"--version"}, want: strings.TrimSpace(string(version)) + "\n"},
+		{name: "version with force", args: []string{"--force", "--version"}, want: strings.TrimSpace(string(version)) + "\n"},
+		{name: "help", args: []string{"--help"}, wantContains: "--force"},
+		{name: "help with force", args: []string{"--force", "--help"}, wantContains: "Usage: dynamicbrowser"},
+		{name: "invalid force", args: []string{"--force=invalid"}, wantErr: true},
 		{name: "unknown flag", args: []string{"--unknown"}, wantErr: true},
+		{name: "unexpected argument", args: []string{"unexpected"}, wantErr: true},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
-			output, err := exec.Command(binary, tt.args...).CombinedOutput()
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			output, err := exec.CommandContext(ctx, binary, tt.args...).CombinedOutput()
 			if (err != nil) != tt.wantErr {
 				t.Fatalf("exit error: %v; want error: %v\n%s", err, tt.wantErr, output)
 			}
-			if !tt.wantErr && string(output) != tt.want {
-				t.Errorf("output = %q; want %q", output, tt.want)
+			if !tt.wantErr {
+				if tt.wantContains != "" {
+					if !strings.Contains(string(output), tt.wantContains) {
+						t.Errorf("output = %q; want substring %q", output, tt.wantContains)
+					}
+				} else if string(output) != tt.want {
+					t.Errorf("output = %q; want %q", output, tt.want)
+				}
 			}
 		})
 	}

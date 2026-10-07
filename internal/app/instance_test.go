@@ -9,6 +9,7 @@ import (
 func TestMain(m *testing.M) {
 	// Test subprocesses must not contend with the user's running application.
 	instanceName = fmt.Sprintf("dynamicbrowser.test.%d", os.Getpid())
+	terminateInstance = func() { panic("restart watchdog must not terminate the test runner") }
 	os.Exit(m.Run())
 }
 

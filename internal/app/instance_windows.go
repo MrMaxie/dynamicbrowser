@@ -9,7 +9,11 @@ import (
 // Keeping a handle open keeps the named mutex alive, including after a crash
 // until Windows closes the process handles. No lock file can become stale.
 func acquireInstance() (func(), bool, error) {
-	name, err := windows.UTF16PtrFromString(`Local\` + instanceName)
+	return acquireNamedInstance(instanceName)
+}
+
+func acquireNamedInstance(identity string) (func(), bool, error) {
+	name, err := windows.UTF16PtrFromString(`Local\` + identity)
 	if err != nil {
 		return nil, false, err
 	}

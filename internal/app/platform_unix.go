@@ -14,15 +14,27 @@ import (
 )
 
 func acquireInstance() (func(), bool, error) {
+	return acquireNamedInstance(instanceName)
+}
+
+func instanceDirectory() (string, error) {
 	cache, err := os.UserCacheDir()
 	if err != nil {
-		return nil, false, err
+		return "", err
 	}
 	dir := filepath.Join(cache, "dynamicbrowser")
 	if err := os.MkdirAll(dir, 0700); err != nil {
+		return "", err
+	}
+	return dir, nil
+}
+
+func acquireNamedInstance(identity string) (func(), bool, error) {
+	dir, err := instanceDirectory()
+	if err != nil {
 		return nil, false, err
 	}
-	file, err := os.OpenFile(filepath.Join(dir, instanceName+".lock"), os.O_CREATE|os.O_RDWR, 0600)
+	file, err := os.OpenFile(filepath.Join(dir, identity+".lock"), os.O_CREATE|os.O_RDWR, 0600)
 	if err != nil {
 		return nil, false, err
 	}

@@ -9,9 +9,13 @@ import (
 	"github.com/gogpu/systray"
 )
 
+type Options struct {
+	Force bool
+}
+
 // Run starts the singleton tray application and blocks until it exits.
-func Run() error {
-	release, acquired, err := acquireInstance()
+func Run(options Options) error {
+	release, acquired, err := acquireForStartup(options.Force)
 	if err != nil || !acquired {
 		return err
 	}
@@ -43,8 +47,9 @@ func Run() error {
 	status := menu.Add(store.Status(), nil)
 	status.SetDisabled(true)
 	statusDone := make(chan struct{})
+	quit := trayQuit(cancel, statusDone, tray.Remove)
 	menu.AddSeparator()
-	menu.Add("Quit", trayQuit(cancel, statusDone, tray.Remove))
+	menu.Add("Quit", quit)
 	tray.SetMenu(menu)
 	if err := bindTrayMenu(tray); err != nil {
 		tray.Remove()
@@ -63,6 +68,14 @@ func Run() error {
 	}()
 	defer func() { cancel(); <-statusDone }()
 	tray.Show()
+	stopControl, err := startInstanceControl(quit)
+	if err != nil {
+		// Let pending native updates finish before destroying the UI event loop.
+		quit()
+		_ = tray.Run()
+		return err
+	}
+	defer stopControl()
 	return tray.Run()
 }
 
