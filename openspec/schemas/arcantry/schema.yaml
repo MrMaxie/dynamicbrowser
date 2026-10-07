@@ -1,0 +1,29 @@
+name: arcantry
+version: 1
+description: Spec-driven delivery with release metadata attached to each change.
+artifacts:
+  - id: proposal
+    description: Explain the intent, scope and material exclusions of the change.
+    generates: proposal.md
+    template: proposal.md
+    requires: []
+  - id: specs
+    description: Define observable behavior and constraints as specification deltas.
+    generates: specs/**/*.md
+    template: specs.md
+    requires: [proposal]
+  - id: design
+    description: Record implementation decisions that would be expensive to rediscover.
+    generates: design.md
+    template: design.md
+    requires: [proposal]
+  - id: tasks
+    description: Track implementation and verification work.
+    generates: tasks.md
+    template: tasks.md
+    requires: [specs, design]
+  - id: release
+    description: Describe the release-facing consumer outcomes and SemVer impact of the change.
+    generates: release.md
+    template: release.md
+    requires: [proposal]

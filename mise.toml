@@ -1,0 +1,6 @@
+[tools]
+go = "1.27.0"
+just = "1.58.0"
+golangci-lint = "2.14.0"
+node = "24.21.0"
+"npm:@fission-ai/openspec" = "1.5.0"

@@ -1,0 +1,17 @@
+config_version = 1
+
+[toml-schema]
+location = "https://arcantry.dev/schemas/arcantry-config-v1.tosd"
+version = "1.0.0"
+
+[sources.openspec]
+kind = "openspec"
+path = "openspec"
+management = "manage"
+adapter = "openspec@1"
+
+[sources.todo-root]
+kind = "todo-txt"
+path = "todo.txt"
+management = "manage"
+adapter = "todo-txt@1"
