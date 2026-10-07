@@ -1,14 +1,15 @@
 package main
 
 import (
-	_ "embed"
 	"flag"
 	"fmt"
 	"strings"
+
+	"github.com/MrMaxie/dynamicbrowser/internal/app"
 )
 
-//go:embed VERSION
-var version string
+// version is set from VERSION by the build recipe.
+var version = "dev"
 
 func main() {
 	showVersion := flag.Bool("version", false, "print the version and exit")
@@ -19,5 +20,7 @@ func main() {
 		return
 	}
 
-	fmt.Println("Hello, World!")
+	if err := app.Run(); err != nil {
+		app.ShowStartupError(err)
+	}
 }

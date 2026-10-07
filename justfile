@@ -4,19 +4,19 @@ set windows-shell := ["powershell.exe", "-NoProfile", "-Command"]
 default:
     @just --list
 
-# Run the Hello World program.
-run:
-    go run .
+# Build and start the Windows tray application without a console.
+run: build
+    Start-Process bin/dynamicbrowser.exe
 
 # Print the application version.
 version:
-    go run . --version
+    $version = (Get-Content -Raw VERSION).Trim(); go run "-ldflags=-X main.version=$version" ./cmd/dynamicbrowser --version
 
 # Build the native executable in bin/.
 build:
-    go build -o bin/ .
+    $version = (Get-Content -Raw VERSION).Trim(); go build "-ldflags=-H=windowsgui -X main.version=$version" -o bin/dynamicbrowser.exe ./cmd/dynamicbrowser
 
-# Run the CLI regression tests.
+# Run regression tests.
 test:
     go test ./...
 
