@@ -127,10 +127,7 @@ func TestRoutingCLIAndTray(t *testing.T) {
 	}
 	failed := startTestApp(t, binary, "https://example.com/no-default")
 	dialog := waitForProcessWindow(t, 0, "#32770", uint32(failed.cmd.Process.Pid))
-	button, err := findNativeWindow(dialog, 0, "Button")
-	if err != nil || button == 0 {
-		t.Fatalf("error dialog button: %v", err)
-	}
+	button := waitForProcessWindow(t, dialog, "Button", uint32(failed.cmd.Process.Pid))
 	if err := postNativeMessage(button, 0x00f5, 0, 0); err != nil {
 		t.Fatal(err)
 	}

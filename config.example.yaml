@@ -1,0 +1,15 @@
+# yaml-language-server: $schema=./config.schema.json
+default: chrome:personal
+autostart: false
+browsers:
+  chrome:personal:
+    exe: C:/Path/To/Chrome/chrome.exe
+    args: ['--profile-directory=Default']
+  chrome:work:
+    exe: C:/Path/To/Chrome/chrome.exe
+    args: ['--profile-directory=ExampleProfile']
+rules:
+  - browser: chrome:work
+    target:
+      domain: '*.example.test'
+      path: ['/projects/*', 'regex:^/teams/[a-z]+/']

@@ -21,6 +21,12 @@ icon:
     magick internal/app/assets/icon-256.png internal/app/assets/icon-128.png internal/app/assets/icon-64.png internal/app/assets/icon-48.png internal/app/assets/icon-32.png internal/app/assets/icon-16.png assets/icon.ico
     go run github.com/akavel/rsrc@v0.10.2 -arch amd64 -ico assets/icon.ico -manifest assets/app.manifest -o cmd/dynamicbrowser/icon_windows_amd64.syso
 
+sandbox-test:
+    powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/Test-WindowsSandbox.ps1
+
+package:
+    powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/Package-Windows.ps1
+
 # Run regression tests.
 test:
     go test ./...
