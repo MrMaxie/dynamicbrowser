@@ -17,13 +17,13 @@ func TestConfigPath(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got != filepath.Join(filepath.Dir(exe), "config.toml") {
+	if got != filepath.Join(filepath.Dir(exe), "config.yaml") {
 		t.Fatalf("path = %q", got)
 	}
 }
 
 func TestWatchConfig(t *testing.T) {
-	path := filepath.Join(t.TempDir(), "config.toml")
+	path := filepath.Join(t.TempDir(), "config.yaml")
 	store := &Store{}
 	ctx, cancel := context.WithCancel(context.Background())
 	done, err := Watch(ctx, path, store)
@@ -56,12 +56,12 @@ func TestWatchConfig(t *testing.T) {
 		}
 		t.Fatalf("config did not reach %q, error=%v", want, wantErr)
 	}
-	write(path, "custom = 'first'\n[anything]\nlist = [1, 2]\n")
+	write(path, "custom: first\nanything:\n  list: [1, 2]\n")
 	wait("first", false)
-	write(path, "invalid = [")
+	write(path, "invalid: [")
 	wait("first", true)
-	replacement := filepath.Join(filepath.Dir(path), "replacement.toml")
-	write(replacement, "custom = 'second'\n")
+	replacement := filepath.Join(filepath.Dir(path), "replacement.yaml")
+	write(replacement, "custom: second\n")
 	if err := os.Rename(replacement, path); err != nil {
 		t.Fatal(err)
 	}
@@ -70,14 +70,14 @@ func TestWatchConfig(t *testing.T) {
 		t.Fatal(err)
 	}
 	wait("second", true)
-	write(path, "custom = 'third'\n")
+	write(path, "custom: third\n")
 	wait("third", false)
 }
 
 func TestConfigChanges(t *testing.T) {
 	store := &Store{}
 	changes := store.Changes()
-	path := filepath.Join(t.TempDir(), "config.toml")
+	path := filepath.Join(t.TempDir(), "config.yaml")
 	store.reload(path)
 	select {
 	case <-changes:
@@ -87,7 +87,7 @@ func TestConfigChanges(t *testing.T) {
 	if store.Status() != "Configuration: error (last valid configuration retained)" {
 		t.Fatal("missing configuration error status")
 	}
-	if err := os.WriteFile(path, []byte("custom = true\n"), 0600); err != nil {
+	if err := os.WriteFile(path, []byte("custom: true\n"), 0600); err != nil {
 		t.Fatal(err)
 	}
 	store.reload(path)
@@ -108,8 +108,8 @@ func TestConfigChanges(t *testing.T) {
 }
 
 func TestConfigPreservesExistingFile(t *testing.T) {
-	path := filepath.Join(t.TempDir(), "config.toml")
-	const content = "arbitrary = true\n"
+	path := filepath.Join(t.TempDir(), "config.yaml")
+	const content = "arbitrary: true\n"
 	if err := os.WriteFile(path, []byte(content), 0600); err != nil {
 		t.Fatal(err)
 	}

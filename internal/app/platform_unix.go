@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 
@@ -50,7 +51,24 @@ func acquireNamedInstance(identity string) (func(), bool, error) {
 }
 
 func ShowStartupError(err error) {
-	_, _ = fmt.Fprintf(os.Stderr, "dynamicbrowser: %v\n", err)
+	message := err.Error()
+	var commands []*exec.Cmd
+	if runtime.GOOS == "darwin" {
+		commands = []*exec.Cmd{exec.Command("osascript", "-e", `on run argv
+ display dialog (item 1 of argv) with title "dynamicbrowser" buttons {"OK"} default button "OK" with icon stop
+end run`, "--", message)}
+	} else {
+		commands = []*exec.Cmd{
+			exec.Command("zenity", "--error", "--title=dynamicbrowser", "--no-markup", "--text="+message),
+			exec.Command("kdialog", "--title", "dynamicbrowser", "--error", message),
+		}
+	}
+	for _, command := range commands {
+		if command.Run() == nil {
+			return
+		}
+	}
+	_, _ = fmt.Fprintf(os.Stderr, "dynamicbrowser: %s\n", message)
 }
 
 func trayIcon() ([]byte, error) {

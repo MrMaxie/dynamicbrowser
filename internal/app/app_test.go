@@ -115,7 +115,7 @@ func TestCLI(t *testing.T) {
 				t.Fatalf("duplicate %v: %v, output=%q", args, err, output)
 			}
 		}
-		if _, err := os.Stat(filepath.Join(filepath.Dir(binary), "config.toml")); !os.IsNotExist(err) {
+		if _, err := os.Stat(filepath.Join(filepath.Dir(binary), "config.yaml")); !os.IsNotExist(err) {
 			t.Fatalf("duplicate touched config: %v", err)
 		}
 	})
@@ -133,7 +133,7 @@ func TestCLI(t *testing.T) {
 		{name: "help with force", args: []string{"--force", "--help"}, wantContains: "Usage: dynamicbrowser"},
 		{name: "invalid force", args: []string{"--force=invalid"}, wantErr: true},
 		{name: "unknown flag", args: []string{"--unknown"}, wantErr: true},
-		{name: "unexpected argument", args: []string{"unexpected"}, wantErr: true},
+		{name: "version with URL", args: []string{"https://example.com/", "--version"}, want: strings.TrimSpace(string(version)) + "\n"},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)

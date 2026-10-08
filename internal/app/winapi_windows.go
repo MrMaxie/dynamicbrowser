@@ -3,8 +3,9 @@ package app
 import (
 	"fmt"
 	"runtime"
-	"unsafe"
+	"sync"
 
+	"github.com/ebitengine/purego"
 	"golang.org/x/sys/windows"
 )
 
@@ -22,7 +23,12 @@ const (
 var (
 	user32API        = windows.NewLazySystemDLL("user32.dll")
 	findWindowEx     = user32API.NewProc("FindWindowExW")
+	findWindowOnce   sync.Once
+	findWindowCall   func(windows.HWND, windows.HWND, *uint16, *uint16) windows.HWND
 	postMessage      = user32API.NewProc("PostMessageW")
+	getWindowText    = user32API.NewProc("GetWindowTextW")
+	windowTextOnce   sync.Once
+	windowTextCall   func(windows.HWND, *uint16, int32) int32
 	getSystemMetrics = user32API.NewProc("GetSystemMetrics")
 	getWindowDPI     = user32API.NewProc("GetWindowDpiAwarenessContext")
 	getDPIAwareness  = user32API.NewProc("GetAwarenessFromDpiAwarenessContext")
@@ -34,10 +40,10 @@ func findNativeWindow(parent, after windows.HWND, class string) (windows.HWND, e
 	if err != nil {
 		return 0, err
 	}
-	// FindWindowExW borrows this UTF-16 buffer only for the duration of the call.
-	hwnd, _, _ := findWindowEx.Call(uintptr(parent), uintptr(after), uintptr(unsafe.Pointer(&name[0])), 0)
+	findWindowOnce.Do(func() { purego.RegisterFunc(&findWindowCall, findWindowEx.Addr()) })
+	hwnd := findWindowCall(parent, after, &name[0], nil)
 	runtime.KeepAlive(name)
-	return windows.HWND(hwnd), nil
+	return hwnd, nil
 }
 
 func postNativeMessage(hwnd windows.HWND, message uint32, wParam, lParam uintptr) error {
@@ -46,6 +52,17 @@ func postNativeMessage(hwnd windows.HWND, message uint32, wParam, lParam uintptr
 		return fmt.Errorf("PostMessageW: %w", err)
 	}
 	return nil
+}
+
+func nativeWindowText(hwnd windows.HWND) string {
+	windowTextOnce.Do(func() { purego.RegisterFunc(&windowTextCall, getWindowText.Addr()) })
+	buffer := make([]uint16, 32768)
+	length := windowTextCall(hwnd, &buffer[0], int32(len(buffer)))
+	runtime.KeepAlive(buffer)
+	if length < 0 || int(length) >= len(buffer) {
+		return ""
+	}
+	return windows.UTF16ToString(buffer[:length])
 }
 
 func nativeTrayIconSize() int {

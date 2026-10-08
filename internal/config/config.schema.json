@@ -1,0 +1,65 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "dynamicbrowser configuration",
+  "type": "object",
+  "additionalProperties": true,
+  "properties": {
+    "default": {
+      "type": "string",
+      "description": "Browser used only when no rule selects an available browser."
+    },
+    "autostart": {
+      "type": "boolean",
+      "description": "Open the tray at user sign-in; routing does not require a tray."
+    },
+    "browsers": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["exe"],
+        "properties": {
+          "exe": { "type": "string" },
+          "args": { "type": "array", "items": { "type": "string" } }
+        },
+        "additionalProperties": false
+      }
+    },
+    "rules": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["browser"],
+        "additionalProperties": false,
+        "properties": {
+          "browser": { "type": "string" },
+          "source": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "process": { "$ref": "#/definitions/patterns" },
+              "window": { "$ref": "#/definitions/patterns" }
+            }
+          },
+          "target": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "url": { "$ref": "#/definitions/patterns" },
+              "domain": { "$ref": "#/definitions/patterns" },
+              "path": { "$ref": "#/definitions/patterns" }
+            }
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "patterns": {
+      "description": "Glob string (* and ?, backslash escapes) or regex: expression. Array alternatives are joined with OR.",
+      "oneOf": [
+        { "type": "string" },
+        { "type": "array", "items": { "type": "string" } }
+      ]
+    }
+  }
+}

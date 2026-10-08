@@ -1,9 +1,10 @@
 package config
 
 import (
+	"bytes"
 	"context"
 	"errors"
-	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -11,22 +12,23 @@ import (
 	"time"
 
 	"github.com/fsnotify/fsnotify"
-	"github.com/pelletier/go-toml/v2"
+	"go.yaml.in/yaml/v3"
 )
 
-// Path returns config.toml next to the running executable.
+// Path returns config.yaml next to the running executable.
 func Path() (string, error) {
 	executable, err := os.Executable()
 	if err != nil {
 		return "", err
 	}
-	return filepath.Join(filepath.Dir(executable), "config.toml"), nil
+	return filepath.Join(filepath.Dir(executable), "config.yaml"), nil
 }
 
-// Store retains the last valid, schema-free TOML document.
+// Store retains the last valid YAML configuration.
 type Store struct {
 	mu      sync.RWMutex
 	values  map[string]any
+	config  *Config
 	err     error
 	changes chan struct{}
 }
@@ -50,17 +52,66 @@ func (c *Store) notifyLocked() {
 
 func (c *Store) reload(path string) {
 	data, err := os.ReadFile(path)
-	values := make(map[string]any)
+	var values map[string]any
+	var configuration *Config
 	if err == nil {
-		err = toml.Unmarshal(data, &values)
+		values, err = parse(data)
+	}
+	if err == nil {
+		err = validateConfiguration(values)
+	}
+	if err == nil {
+		configuration, err = decode(data)
 	}
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.err = err
 	if err == nil {
 		c.values = values
+		c.config = configuration
 	}
 	c.notifyLocked()
+}
+
+// Snapshot is immutable after publication, including its slices and patterns.
+func (c *Store) Snapshot() (*Config, error) {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.config, c.err
+}
+
+func Load(path string) (*Config, error) {
+	if err := ensureFiles(path); err != nil {
+		return nil, err
+	}
+	store := &Store{}
+	store.reload(path)
+	return store.Snapshot()
+}
+
+func parse(data []byte) (map[string]any, error) {
+	decoder := yaml.NewDecoder(bytes.NewReader(data))
+	var document yaml.Node
+	if err := decoder.Decode(&document); errors.Is(err, io.EOF) {
+		return make(map[string]any), nil
+	} else if err != nil {
+		return nil, err
+	}
+	if len(document.Content) != 1 || document.Content[0].Kind != yaml.MappingNode {
+		return nil, errors.New("configuration must be a YAML mapping")
+	}
+	values := make(map[string]any)
+	if err := document.Decode(&values); err != nil {
+		return nil, err
+	}
+	var extra yaml.Node
+	if err := decoder.Decode(&extra); !errors.Is(err, io.EOF) {
+		if err != nil {
+			return nil, err
+		}
+		return nil, errors.New("configuration must contain only one YAML document")
+	}
+	return values, nil
 }
 
 // Status describes the current configuration health for the tray UI.
@@ -85,13 +136,9 @@ func Watch(ctx context.Context, path string, store *Store) (<-chan struct{}, err
 		_ = watcher.Close()
 		return nil, err
 	}
-	file, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0600)
-	if err == nil {
-		err = file.Close()
-	}
-	if err != nil && !errors.Is(err, os.ErrExist) {
+	if err := ensureFiles(path); err != nil {
 		_ = watcher.Close()
-		return nil, fmt.Errorf("create config.toml: %w", err)
+		return nil, err
 	}
 	store.reload(path)
 	done := make(chan struct{})

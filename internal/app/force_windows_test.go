@@ -40,8 +40,8 @@ func TestForceCLI(t *testing.T) {
 	if output, err := exec.Command("go", "build", "-ldflags", flags, "-o", binary, "../../cmd/dynamicbrowser").CombinedOutput(); err != nil {
 		t.Fatalf("build: %v\n%s", err, output)
 	}
-	path := filepath.Join(filepath.Dir(binary), "config.toml")
-	const config = "[arbitrary]\nname = 'preserved'\n"
+	path := filepath.Join(filepath.Dir(binary), "config.yaml")
+	const config = "arbitrary:\n  name: preserved\n"
 	if err := os.WriteFile(path, []byte(config), 0600); err != nil {
 		t.Fatal(err)
 	}
@@ -86,7 +86,7 @@ func TestForceCLI(t *testing.T) {
 		}
 		data, err := os.ReadFile(path)
 		if err != nil || string(data) != config {
-			t.Fatalf("force changed config.toml: %v, %q", err, data)
+			t.Fatalf("force changed config.yaml: %v, %q", err, data)
 		}
 	})
 
