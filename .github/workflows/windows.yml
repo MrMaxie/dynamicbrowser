@@ -18,6 +18,8 @@ jobs:
   windows:
     runs-on: windows-2025
     timeout-minutes: 30
+    env:
+      MISE_NPM_PACKAGE_MANAGER: npm
     defaults:
       run:
         shell: pwsh
@@ -29,6 +31,8 @@ jobs:
 
       - name: Install project tools
         uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4
+        with:
+          cache_key_prefix: mise-npm-v1
 
       - name: Lint, test, validate specs and build
         run: mise exec -- just check
