@@ -129,6 +129,10 @@ func TestCLI(t *testing.T) {
 	}{
 		{name: "version", args: []string{"--version"}, want: strings.TrimSpace(string(version)) + "\n"},
 		{name: "version with force", args: []string{"--force", "--version"}, want: strings.TrimSpace(string(version)) + "\n"},
+		{name: "version with registration", args: []string{"--register", "--version"}, want: strings.TrimSpace(string(version)) + "\n"},
+		{name: "version with restore", args: []string{"--restore", "--version"}, want: strings.TrimSpace(string(version)) + "\n"},
+		{name: "exclusive setup actions", args: []string{"--register", "--restore"}, wantErr: true},
+		{name: "setup excludes force", args: []string{"--register", "--force"}, wantErr: true},
 		{name: "help", args: []string{"--help"}, wantContains: "--force"},
 		{name: "help with force", args: []string{"--force", "--help"}, wantContains: "Usage: dynamicbrowser"},
 		{name: "invalid force", args: []string{"--force=invalid"}, wantErr: true},
