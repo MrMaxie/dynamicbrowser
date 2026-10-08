@@ -89,6 +89,29 @@ func TestRoutingControlBatches(t *testing.T) {
 	}
 }
 
+func TestRoutingControlRepeatedShutdown(t *testing.T) {
+	for range 50 {
+		stop, err := startRoutingControl(func(routing.Request) error { return nil })
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := forwardURLs(routing.Request{URLs: []string{"https://example.test/shutdown"}}); err != nil {
+			stop()
+			t.Fatal(err)
+		}
+		done := make(chan struct{})
+		go func() {
+			stop()
+			close(done)
+		}()
+		select {
+		case <-done:
+		case <-time.After(3 * time.Second):
+			t.Fatal("routing listener shutdown blocked after handoff")
+		}
+	}
+}
+
 func TestRoutingControlOversizedURLDoesNotPartiallySend(t *testing.T) {
 	calls := 0
 	stop, err := startRoutingControl(func(routing.Request) error { calls++; return nil })

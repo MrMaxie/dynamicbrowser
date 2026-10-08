@@ -3,7 +3,7 @@ module github.com/MrMaxie/dynamicbrowser
 go 1.27.0
 
 require (
-	github.com/Microsoft/go-winio v0.6.2
+	github.com/Microsoft/go-winio v0.6.3-0.20260925173824-7e8af9b09c4b
 	github.com/alecthomas/kong v1.16.1
 	github.com/ebitengine/purego v0.11.1
 	github.com/fsnotify/fsnotify v1.10.1
