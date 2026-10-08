@@ -64,6 +64,8 @@ mise exec -- just package
 
 `just check` runs lint, formatting checks, tests, OpenSpec validation, and a build. `just sandbox-test` runs offline tests in Windows Sandbox without changing host associations; see [Windows Sandbox checks](https://github.com/MrMaxie/dynamicbrowser/blob/master/scripts/sandbox/README.md) for the separate Settings/consent checklist. `just package` builds a Windows amd64 ZIP in `bin/` using `VERSION`, the schema, the example, README, and license. It does not include an installed `config.yaml` or publish a release.
 
+[Windows CI](https://github.com/MrMaxie/dynamicbrowser/actions/workflows/windows.yml) runs on pushes and pull requests to `master`, or manually. It uses `mise.toml`, runs `just check`, race tests and `go vet`, then keeps the Windows ZIP and SHA256 checksum as a run artifact for 14 days. It does not publish releases or run the Sandbox/Settings checklist.
+
 Tool versions are pinned in `mise.toml`; Node.js is used by the OpenSpec CLI. In GoLand, open this directory as a Go project and use the pinned Go SDK. Application code lives in `cmd/` and `internal/`; Windows is the supported platform for default-browser setup.
 
 ## Project sources

@@ -1,0 +1,63 @@
+name: Windows CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  windows:
+    runs-on: windows-2025
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - name: Check out source
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+
+      - name: Install project tools
+        uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4
+
+      - name: Lint, test, validate specs and build
+        run: mise exec -- just check
+
+      - name: Race tests
+        env:
+          CGO_ENABLED: '1'
+          CC: gcc
+        run: mise exec -- go test -race -timeout 5m ./...
+
+      - name: Vet
+        run: mise exec -- go vet ./...
+
+      - name: Package Windows ZIP
+        id: package
+        run: |
+          mise exec -- just package
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $version = (Get-Content -Raw VERSION).Trim()
+          $archive = "bin/dynamicbrowser-$version-windows-amd64.zip"
+          "archive=$archive" >> $env:GITHUB_OUTPUT
+
+      - name: Upload ZIP and checksum
+        # actions/upload-artifact v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: dynamicbrowser-windows-amd64
+          path: |
+            ${{ steps.package.outputs.archive }}
+            ${{ steps.package.outputs.archive }}.sha256
+          if-no-files-found: error
+          retention-days: 14
