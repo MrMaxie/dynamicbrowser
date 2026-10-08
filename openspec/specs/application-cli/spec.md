@@ -1,8 +1,8 @@
-# Hello World
+# Application CLI
 
 ## Purpose
 
-Provide the initial Go command-line program for dynamicbrowser.
+Define command-line invocation and version reporting for dynamicbrowser.
 
 ## Requirements
 
