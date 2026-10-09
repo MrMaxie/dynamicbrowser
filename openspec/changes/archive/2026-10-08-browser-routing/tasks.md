@@ -5,6 +5,7 @@
 - [x] Implement the singleton tray, forced replacement, session-only selection, configuration editing, and user-level autostart.
 - [x] Implement explicit Windows registration and restoration with separate persistent HTTP/HTTPS choices, supported system consent, and verified cleanup.
 - [x] Verify normal registration, system-shell URL activation, repeated setup, cancellation, restoration, and mixed-protocol side-effect detection in Windows Sandbox.
+- [x] Confirm initial live Windows routing through user acceptance; extended daily-use evaluation remains in progress.
 - [x] Add a repeatable offline Sandbox harness, native test coverage, a routing probe, and a separate consent-dependent checklist.
 - [x] Update README and validate the public example against the runtime schema and decoder.
 - [x] Run final `just check` and independent review of documentation, harness, packaging, and privacy boundaries.
