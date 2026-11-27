@@ -95,6 +95,20 @@ A running tray reloads valid edits, including atomic file replacement. Invalid e
 
 When missing, the application creates an empty `config.yaml` and a local `config.schema.json`, preserving existing files. The example and newly created YAML include a modeline for YAML language servers. Additional top-level fields are allowed; known fields and nested properties are validated.
 
+### Source rules on Linux
+
+Two optional booleans in `config.yaml` default to `true` on Linux. Windows ignores them and continues matching the process name and window title separately.
+
+- `window-as-process`: lets `source.window` match the same launcher process name as `source.process` when that name is known. It does not match a window title.
+- `active-window-fallback`: when the launcher process is unknown and no ordinary rule matches, dynamicbrowser tries `source.window` against the active window's class on Hyprland (`hyprctl` must be available). It does not use the class for `source.process`. This is a guess: a focus change or a link opened in the background can point to the wrong window. If the lookup is unavailable or no rule matches, routing uses `default`.
+
+Set either option to `false` to disable it independently:
+
+```yaml
+active-window-fallback: false
+window-as-process: false
+```
+
 ## Default browser on Windows
 
 ```powershell

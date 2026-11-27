@@ -15,15 +15,6 @@ import (
 	"go.yaml.in/yaml/v3"
 )
 
-// Path returns config.yaml next to the running executable.
-func Path() (string, error) {
-	executable, err := os.Executable()
-	if err != nil {
-		return "", err
-	}
-	return filepath.Join(filepath.Dir(executable), "config.yaml"), nil
-}
-
 // Store retains the last valid YAML configuration.
 type Store struct {
 	mu      sync.RWMutex
@@ -127,16 +118,15 @@ func (c *Store) Status() string {
 // Watch loads the configuration and watches for changes until ctx is canceled.
 // The returned channel closes after the watcher has released its resources.
 func Watch(ctx context.Context, path string, store *Store) (<-chan struct{}, error) {
+	if err := ensureFiles(path); err != nil {
+		return nil, err
+	}
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		return nil, err
 	}
 	// Watch the directory so editor atomic saves and file recreation keep working.
 	if err = watcher.Add(filepath.Dir(path)); err != nil {
-		_ = watcher.Close()
-		return nil, err
-	}
-	if err := ensureFiles(path); err != nil {
 		_ = watcher.Close()
 		return nil, err
 	}

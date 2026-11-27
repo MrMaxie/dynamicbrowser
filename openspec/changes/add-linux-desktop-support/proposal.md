@@ -12,4 +12,4 @@ The Linux target is not supported merely because it compiles: its package, deskt
 
 # Out of scope
 
-Other operating systems or architectures, distro-specific installers, system-wide setup, new routing syntax, compositor-specific source capture, and publishing GitHub Releases.
+Other operating systems or architectures, distro-specific installers, system-wide setup, new routing rule syntax, compositor-specific source capture beyond the Hyprland active-window fallback, and publishing GitHub Releases.

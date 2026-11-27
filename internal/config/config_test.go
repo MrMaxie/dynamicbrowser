@@ -8,20 +8,6 @@ import (
 	"time"
 )
 
-func TestConfigPath(t *testing.T) {
-	got, err := Path()
-	if err != nil {
-		t.Fatal(err)
-	}
-	exe, err := os.Executable()
-	if err != nil {
-		t.Fatal(err)
-	}
-	if got != filepath.Join(filepath.Dir(exe), "config.yaml") {
-		t.Fatalf("path = %q", got)
-	}
-}
-
 func TestWatchConfig(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "config.yaml")
 	store := &Store{}

@@ -23,7 +23,10 @@ type Options struct {
 }
 
 func Run(options Options) error {
-	request := routing.Request{URLs: options.URLs, Source: captureSource()}
+	request := routing.Request{URLs: options.URLs}
+	if len(options.URLs) > 0 {
+		request.Source = captureSource()
+	}
 	if len(options.URLs) > 0 && !options.Force {
 		return routeOnDemand(request)
 	}
@@ -49,7 +52,10 @@ func Run(options Options) error {
 	if err != nil {
 		return err
 	}
-	router := routing.New(configuration, filepath.Dir(path), startCommand)
+	router, err := newRouter(configuration)
+	if err != nil {
+		return err
+	}
 	updateAutostart := autostartUpdater(configureAutostart)
 	select {
 	case <-changes:
@@ -74,11 +80,11 @@ func Run(options Options) error {
 		if err != nil {
 			return err
 		}
-		stopRouting, err = startRoutingControl(router.Open)
+		stopRouting, err = startRoutingControl(routingHandler(router))
 		if err != nil {
 			return err
 		}
-		return router.Open(request)
+		return routingHandler(router)(request)
 	}
 	for {
 		if err := runTray(ctx, cancel, store, router, path, updateAutostart, ready, options.Version); err != nil {
@@ -195,6 +201,30 @@ func configureAutostart(enabled bool) error {
 	return nil
 }
 
+func newRouter(configuration *config.Config) (*routing.Router, error) {
+	executable, err := os.Executable()
+	if err != nil {
+		return nil, err
+	}
+	return routing.New(configuration, filepath.Dir(executable), startCommand), nil
+}
+
+func routingHandler(router *routing.Router) func(routing.Request) error {
+	var observe func(routing.Source, string, string)
+	if os.Getenv("DYNAMICBROWSER_TRACE_ROUTING") == "1" {
+		observe = func(source routing.Source, browser, reason string) {
+			process := source.Process
+			if process == "" {
+				process = "unknown"
+			}
+			fmt.Fprintf(os.Stderr, "dynamicbrowser: process=%q window_hint=%q decision=%s browser=%q\n", process, source.WindowHint, reason, browser)
+		}
+	}
+	return func(request routing.Request) error {
+		return router.OpenObserved(request, activeWindowHint, observe)
+	}
+}
+
 func routeOnDemand(request routing.Request) error {
 	deadline := time.Now().Add(restartTimeout)
 	for {
@@ -217,8 +247,12 @@ func routeOnDemand(request routing.Request) error {
 			if err != nil {
 				return err
 			}
+			router, err := newRouter(configuration)
+			if err != nil {
+				return err
+			}
 			return openWithAutostart(configuration.Autostart, configureAutostart, func() error {
-				return routing.New(configuration, filepath.Dir(path), startCommand).Open(request)
+				return routingHandler(router)(request)
 			})
 		}
 		if time.Now().After(deadline) {
