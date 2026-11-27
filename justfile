@@ -14,7 +14,8 @@ version:
 
 # Build the native executable in bin/.
 build:
-    $version = (Get-Content -Raw VERSION).Trim(); go build "-ldflags=-H=windowsgui -X main.version=$version" -o bin/dynamicbrowser.exe ./cmd/dynamicbrowser
+    $version = (Get-Content -Raw VERSION).Trim(); go build "-ldflags=-H=windowsgui -X main.version=$version" -o bin/dynamicbrowser.exe ./cmd/dynamicbrowser; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+    if (Test-Path -LiteralPath 'bin/dynamicbrowser.exe~') { try { Remove-Item -LiteralPath 'bin/dynamicbrowser.exe~' -ErrorAction Stop } catch { Write-Warning 'Old executable is still in use; close the old tray and run just build again to remove bin/dynamicbrowser.exe~.' } }
 
 icon:
     foreach ($size in 16,20,22,24,28,32,36,40,44,48,56,64,128,256) { magick -background none -density ($size * 4) assets/icon.svg -strip "PNG32:internal/app/assets/icon-$size.png"; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE } }

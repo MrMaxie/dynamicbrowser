@@ -17,8 +17,9 @@ import (
 )
 
 type Options struct {
-	Force bool
-	URLs  []string
+	Force   bool
+	URLs    []string
+	Version string
 }
 
 func Run(options Options) error {
@@ -80,7 +81,7 @@ func Run(options Options) error {
 		return router.Open(request)
 	}
 	for {
-		if err := runTray(ctx, cancel, store, router, path, updateAutostart, ready); err != nil {
+		if err := runTray(ctx, cancel, store, router, path, updateAutostart, ready, options.Version); err != nil {
 			return err
 		}
 		if runtime.GOOS != "linux" || ctx.Err() != nil {
@@ -89,7 +90,7 @@ func Run(options Options) error {
 	}
 }
 
-func runTray(parent context.Context, closeTray context.CancelFunc, store *config.Store, router *routing.Router, path string, updateAutostart func(bool) error, ready func() error) error {
+func runTray(parent context.Context, closeTray context.CancelFunc, store *config.Store, router *routing.Router, path string, updateAutostart func(bool) error, ready func() error, version string) error {
 	ctx, cancel := context.WithCancel(parent)
 	defer cancel()
 	configuration, loadErr := store.Snapshot()
@@ -108,7 +109,7 @@ func runTray(parent context.Context, closeTray context.CancelFunc, store *config
 	updatesDone := make(chan struct{})
 	remove := trayQuit(cancel, updatesDone, tray.Remove)
 	edit := func() error { return editConfiguration(path) }
-	tray.SetMenu(newTrayMenu(ctx, router, edit, closeTray).menu)
+	tray.SetMenu(newTrayMenu(ctx, router, edit, closeTray, version).menu)
 	setTrayTooltip(tray, loadErr)
 	if err := bindTrayMenu(tray); err != nil {
 		tray.Remove()
@@ -143,7 +144,7 @@ func runTray(parent context.Context, closeTray context.CancelFunc, store *config
 				if err := dispatchTrayUpdate(ctx, dispatch, func() {
 					setTrayTooltip(tray, loadErr)
 					if valid {
-						tray.SetMenu(newTrayMenu(ctx, router, edit, closeTray).menu)
+						tray.SetMenu(newTrayMenu(ctx, router, edit, closeTray, version).menu)
 					}
 				}); err != nil {
 					return

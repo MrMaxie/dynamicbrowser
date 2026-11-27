@@ -226,7 +226,7 @@ func TestTraySelection(t *testing.T) {
 	}
 	cfg := &config.Config{Browsers: config.Browsers{{Name: "first", Exe: executable}, {Name: "second", Exe: executable}, {Name: "missing", Exe: "nonexistent-browser-test"}}}
 	router := routing.New(cfg, t.TempDir(), func(string, []string) error { return nil })
-	view := newTrayMenu(context.Background(), router, func() error { return nil }, func() {})
+	view := newTrayMenu(context.Background(), router, func() error { return nil }, func() {}, "test")
 	if len(view.checks) != 3 || !view.checks[""].IsChecked() {
 		t.Fatal("menu does not start in Auto with available browsers")
 	}
@@ -243,12 +243,12 @@ func TestTraySelection(t *testing.T) {
 	}
 	view.choose("second")
 	router.Update(&config.Config{Browsers: cfg.Browsers[:1]})
-	view = newTrayMenu(context.Background(), router, func() error { return nil }, func() {})
+	view = newTrayMenu(context.Background(), router, func() error { return nil }, func() {}, "test")
 	if router.Forced() != "" || !view.checks[""].IsChecked() {
 		t.Fatal("removed browser did not reset Auto")
 	}
 	ctx, cancel := context.WithCancel(context.Background())
-	stale := newTrayMenu(ctx, router, func() error { return nil }, func() {})
+	stale := newTrayMenu(ctx, router, func() error { return nil }, func() {}, "test")
 	cancel()
 	stale.choose("first")
 	if router.Forced() != "" {
