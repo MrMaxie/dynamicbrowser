@@ -130,7 +130,7 @@ mise exec -- just sandbox-test
 mise exec -- just package
 ```
 
-`just check` runs lint, formatting checks, tests, OpenSpec validation, and a build. `just sandbox-test` runs offline tests in Windows Sandbox without changing host associations; see [Windows Sandbox checks](https://github.com/MrMaxie/dynamicbrowser/blob/master/scripts/sandbox/README.md) for the separate Settings/consent checklist. `just package` builds a Windows amd64 ZIP in `bin/` using `VERSION`, the schema, the example, README, and license. It does not include an installed `config.yaml` or publish a release.
+`just check` runs lint, formatting checks, tests, OpenSpec validation, and a build. `just sandbox-test` runs offline tests in Windows Sandbox without changing host associations; see [Windows Sandbox checks](https://github.com/MrMaxie/dynamicbrowser/blob/master/scripts/sandbox/README.md) for the separate Settings/consent checklist. `just package` writes a Windows amd64 ZIP and SHA256 checksum to `dist/` using `VERSION`, the schema, the example, README, and license. It does not include an installed `config.yaml` or publish a release. `bin/` is for the executable, your `config.yaml`, and its schema; distribution archives stay in `dist/`. A successful build removes the old `dynamicbrowser.exe~` backup when it is no longer in use. If it is locked, close the old tray and build again.
 
 [Windows CI](https://github.com/MrMaxie/dynamicbrowser/actions/workflows/windows.yml) runs on pushes and pull requests to `master`, or manually. It uses `mise.toml`, runs `just check`, race tests and `go vet`, then keeps the Windows ZIP and SHA256 checksum as a run artifact for 14 days. It does not publish releases or run the Sandbox/Settings checklist.
 

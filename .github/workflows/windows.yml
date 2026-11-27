@@ -52,7 +52,7 @@ jobs:
           mise exec -- just package
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           $version = (Get-Content -Raw VERSION).Trim()
-          $archive = "bin/dynamicbrowser-$version-windows-amd64.zip"
+          $archive = "dist/dynamicbrowser-$version-windows-amd64.zip"
           "archive=$archive" >> $env:GITHUB_OUTPUT
 
       - name: Upload ZIP and checksum

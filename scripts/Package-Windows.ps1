@@ -36,7 +36,7 @@ try {
     } finally {
         $zip.Dispose()
     }
-    $output = Join-Path $repo 'bin'
+    $output = Join-Path $repo 'dist'
     New-Item -ItemType Directory $output -Force | Out-Null
     $destination = Join-Path $output "dynamicbrowser-$version-windows-amd64.zip"
     Copy-Item $archive $destination -Force

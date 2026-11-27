@@ -35,7 +35,7 @@ func main() {
 	} else if cli.Restore {
 		err = registration.Restore()
 	} else {
-		err = app.Run(app.Options{Force: cli.Force, URLs: cli.URLs})
+		err = app.Run(app.Options{Force: cli.Force, URLs: cli.URLs, Version: version})
 	}
 	if errors.Is(err, registration.ErrCancelled) {
 		os.Exit(2)

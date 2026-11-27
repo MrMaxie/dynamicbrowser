@@ -16,7 +16,7 @@ type trayMenu struct {
 	router *routing.Router
 }
 
-func newTrayMenu(ctx context.Context, router *routing.Router, edit func() error, closeTray func()) *trayMenu {
+func newTrayMenu(ctx context.Context, router *routing.Router, edit func() error, closeTray func(), version string) *trayMenu {
 	view := &trayMenu{ctx: ctx, menu: systray.NewMenu(), checks: make(map[string]*systray.MenuItem), router: router}
 	view.checks[""] = view.menu.AddCheckbox("Auto", router.Forced() == "", func() { view.choose("") })
 	view.menu.AddSeparator()
@@ -31,6 +31,14 @@ func newTrayMenu(ctx context.Context, router *routing.Router, edit func() error,
 			return
 		}
 		if err := edit(); err != nil {
+			ShowStartupError(err)
+		}
+	})
+	view.menu.Add("About", func() {
+		if ctx.Err() != nil {
+			return
+		}
+		if err := showAbout(version); err != nil {
 			ShowStartupError(err)
 		}
 	})

@@ -17,7 +17,7 @@ func TestConcurrentTraySelections(t *testing.T) {
 	}
 	cfg := &config.Config{Browsers: config.Browsers{{Name: "first", Exe: executable}, {Name: "second", Exe: executable}}}
 	router := routing.New(cfg, t.TempDir(), func(string, []string) error { return nil })
-	view := newTrayMenu(context.Background(), router, func() error { return nil }, func() {})
+	view := newTrayMenu(context.Background(), router, func() error { return nil }, func() {}, "test")
 	choices := []string{"", "first", "second"}
 	for range 100 {
 		var group sync.WaitGroup
