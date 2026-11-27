@@ -17,8 +17,8 @@ func main() {
 	var cli struct {
 		Version  kong.VersionFlag `help:"Print the version and exit."`
 		Force    bool             `xor:"operation" help:"Stop the running tray and start a new one."`
-		Register bool             `xor:"operation" help:"Register as a browser and open Windows Default Apps settings."`
-		Restore  bool             `xor:"operation" help:"Restore previous browser choices through Windows Settings and remove registration."`
+		Register bool             `xor:"operation" help:"Register as a browser and assist with making it the default."`
+		Restore  bool             `xor:"operation" help:"Restore previous browser choices and remove registration."`
 		URLs     []string         `arg:"" optional:"" name:"url" help:"Web URLs to open without starting a tray."`
 	}
 	kong.Parse(&cli,

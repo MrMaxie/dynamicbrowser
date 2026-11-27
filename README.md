@@ -1,6 +1,6 @@
 # dynamicbrowser
 
-A Windows web-link router that opens URLs in named browser profiles using URL and source-application rules. An optional tray lets you temporarily choose one profile instead of automatic routing.
+A Windows and Linux web-link router that opens URLs in named browser profiles using URL and source-application rules. An optional tray lets you temporarily choose one profile instead of automatic routing.
 
 ## Set up on Windows
 
@@ -75,6 +75,16 @@ To undo default-browser setup:
 
 Follow the Windows prompts to restore your previous HTTP/HTTPS choices before deleting or moving the application folder.
 
+## Set up on Linux
+
+Download `dynamicbrowser-linux-amd64` from a successful [Linux CI](https://github.com/MrMaxie/dynamicbrowser/actions/workflows/linux.yml) run. Unpack the `tar.gz` into a permanent directory. Verify the download with `sha256sum -c` and the supplied checksum file.
+
+Copy `config.example.yaml` to `${XDG_CONFIG_HOME:-$HOME/.config}/dynamicbrowser/config.yaml` and set the browser executables and profile arguments for Linux. Test the configuration with `./dynamicbrowser 'https://example.com'`.
+
+Install `xdg-utils`, then run `./dynamicbrowser --register` from a terminal and confirm to make it your default HTTP and HTTPS handler. Run `./dynamicbrowser --restore` before moving or removing the executable. Restoration preserves newer browser choices. If you already installed a `dynamicbrowser.desktop` entry manually, switch back to another browser and remove that manual entry before running `--register`.
+
+Run `./dynamicbrowser` without arguments to open the tray on a desktop with a compatible tray host. URL routing does not require the tray.
+
 ## Tray behavior
 
 URL invocations do not start a tray. If one is running, they use its temporary selection. Closing the tray does not disable later URL routing. Starting a second tray exits silently; `--force` replaces the running tray.
@@ -132,7 +142,7 @@ mise install
 mise exec -- just build
 ```
 
-The executable is created in `bin/`. Follow the setup instructions above using that folder: copy `config.example.yaml` from the repository root to `bin/config.yaml`, customize it, then run commands from `bin/`. Configuration is always loaded beside the executable, regardless of the working directory.
+The executable is created in `bin/`. Follow the setup instructions above using that folder: copy `config.example.yaml` from the repository root to `bin/config.yaml`, customize it, then run commands from `bin/`. On Windows, configuration is always loaded beside the executable, regardless of the working directory. On Linux amd64, run `mise exec -- bash scripts/package-linux.sh` to build and smoke-test the archive and checksum in `dist/`.
 
 Developer checks and packaging:
 
