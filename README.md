@@ -8,7 +8,7 @@ You do not need developer tools to use a packaged build. Any browser that accept
 
 ### 1. Download and unpack
 
-Open [Windows CI](https://github.com/MrMaxie/dynamicbrowser/actions/workflows/windows.yml), choose a successful run for `master`, and download the `dynamicbrowser-windows-amd64` artifact under **Artifacts** (GitHub sign-in required). Artifacts expire after 14 days. Unpack the download, then unpack the application ZIP inside it into a permanent folder. Builds are currently distributed as CI artifacts, not published releases.
+Download the Windows amd64 ZIP and its `.sha256` file from the [latest release](https://github.com/MrMaxie/dynamicbrowser/releases/latest). Unpack the ZIP into a permanent folder.
 
 Keep the folder in place after registering dynamicbrowser as your default browser. For the commands below, open that folder in PowerShell (right-click inside it and choose **Open in Terminal**).
 
@@ -77,7 +77,7 @@ Follow the Windows prompts to restore your previous HTTP/HTTPS choices before de
 
 ## Set up on Linux
 
-Download `dynamicbrowser-linux-amd64` from a successful [Linux CI](https://github.com/MrMaxie/dynamicbrowser/actions/workflows/linux.yml) run. Unpack the `tar.gz` into a permanent directory. Verify the download with `sha256sum -c` and the supplied checksum file.
+Download the Linux amd64 `tar.gz` and its `.sha256` file from the [latest release](https://github.com/MrMaxie/dynamicbrowser/releases/latest). Verify the archive with `sha256sum -c` and the supplied checksum file, then unpack it into a permanent directory.
 
 Copy `config.example.yaml` to `${XDG_CONFIG_HOME:-$HOME/.config}/dynamicbrowser/config.yaml` and set the browser executables and profile arguments for Linux. Test the configuration with `./dynamicbrowser 'https://example.com'`.
 
@@ -158,7 +158,7 @@ mise exec -- just package
 
 [Windows CI](https://github.com/MrMaxie/dynamicbrowser/actions/workflows/windows.yml) runs on pushes and pull requests to `master`, or manually. It uses `mise.toml`, runs `just check`, race tests and `go vet`, then keeps the Windows ZIP and SHA256 checksum as a run artifact for 14 days. It does not publish releases or run the Sandbox/Settings checklist.
 
-Tool versions are pinned in `mise.toml`; Node.js is used by the OpenSpec CLI. In GoLand, open this directory as a Go project and use the pinned Go SDK. Application code lives in `cmd/` and `internal/`; Windows is the supported platform for default-browser setup.
+Tool versions are pinned in `mise.toml`; Node.js is used by the OpenSpec CLI. In GoLand, open this directory as a Go project and use the pinned Go SDK. Application code lives in `cmd/` and `internal/`. Default-browser setup is supported on Windows and Linux.
 
 ## Releasing
 
