@@ -160,12 +160,18 @@ mise exec -- just package
 
 Tool versions are pinned in `mise.toml`; Node.js is used by the OpenSpec CLI. In GoLand, open this directory as a Go project and use the pinned Go SDK. Application code lives in `cmd/` and `internal/`; Windows is the supported platform for default-browser setup.
 
+## Releasing
+
+For ordinary PRs, record user-facing changes under `Unreleased` in `CHANGELOG.md` using public OpenSpec `release.md` entries. A release PR must bump `VERSION` and add exactly one matching, non-empty `## [X.Y.Z] - YYYY-MM-DD` section. Use the planned release date and update it before tagging if the date changes. To check the PR locally, run `python3 scripts/release-contract.py --base origin/master`.
+
+After merging and checking CI, push a `vX.Y.Z` tag for the release commit on `master`. The release workflow checks the tag against `VERSION` and `CHANGELOG.md`, builds both platforms, verifies their checksums, and publishes the archives and checksums to GitHub Releases. The notes come from that version's changelog section, not the commit log. Merging a PR alone does not publish a release.
+
 ## Project sources
 
 - `VERSION`: application version embedded at build time. Use Semantic Versioning; update it for each release.
 - `todo.txt`: quick task intake.
 - `openspec/specs/`: accepted product and engineering requirements.
 - `openspec/changes/`: proposed changes and archived changes.
-- `arcantry.toml`: source configuration.
+- [`CHANGELOG.md`](CHANGELOG.md): user-facing release history based on OpenSpec `release.md` entries.
 
 Licensed under the [Apache License 2.0](LICENSE).
