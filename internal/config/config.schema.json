@@ -12,6 +12,16 @@
       "type": "boolean",
       "description": "Open the tray at user sign-in; routing does not require a tray."
     },
+    "active-window-fallback": {
+      "type": "boolean",
+      "default": true,
+      "description": "Linux only: try the active window class on supported desktops when the process is unknown and no normal rule matches."
+    },
+    "window-as-process": {
+      "type": "boolean",
+      "default": true,
+      "description": "Linux only: let source.window match the known launcher process name."
+    },
     "browsers": {
       "type": "object",
       "additionalProperties": {

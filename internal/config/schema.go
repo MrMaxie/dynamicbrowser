@@ -39,7 +39,11 @@ func validateConfiguration(values map[string]any) error {
 const initialConfiguration = "# yaml-language-server: $schema=./config.schema.json\n{}\n"
 
 func ensureFiles(path string) error {
-	if err := createIfMissing(filepath.Join(filepath.Dir(path), "config.schema.json"), schema); err != nil {
+	dir := filepath.Dir(path)
+	if err := os.MkdirAll(dir, 0700); err != nil {
+		return fmt.Errorf("create configuration directory: %w", err)
+	}
+	if err := createIfMissing(filepath.Join(dir, "config.schema.json"), schema); err != nil {
 		return fmt.Errorf("create config.schema.json: %w", err)
 	}
 	if err := createIfMissing(path, []byte(initialConfiguration)); err != nil {

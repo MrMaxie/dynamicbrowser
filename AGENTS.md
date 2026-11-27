@@ -1,7 +1,5 @@
-<!-- arcantry:start -->
-## Arcantry
+## Project sources
 
-Use `arcantry.toml` for shared Arcantry configuration.
-Treat configured OpenSpec sources as accepted product and engineering intent.
-Use configured todo.txt sources for quick intake and changelog sources for consumer-facing release history.
-<!-- arcantry:end -->
+- Use OpenSpec for accepted product and engineering requirements.
+- Maintain `CHANGELOG.md` in Keep a Changelog format using public OpenSpec `release.md` entries, not Git commit messages. Keep pending entries under `Unreleased` until release.
+- Use `todo.txt` for quick intake.

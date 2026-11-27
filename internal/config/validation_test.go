@@ -19,6 +19,8 @@ func TestInvalidShapeRetainsConfiguration(t *testing.T) {
 		"browsers: {example: {exe: browser.exe, args: [123]}}",
 		"default: 123",
 		"autostart: null",
+		"active-window-fallback: null",
+		"window-as-process: 'false'",
 	} {
 		t.Run(invalid, func(t *testing.T) {
 			path := filepath.Join(t.TempDir(), "config.yaml")

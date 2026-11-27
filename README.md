@@ -1,6 +1,6 @@
 # dynamicbrowser
 
-A Windows web-link router that opens URLs in named browser profiles using URL and source-application rules. An optional tray lets you temporarily choose one profile instead of automatic routing.
+A Windows and Linux web-link router that opens URLs in named browser profiles using URL and source-application rules. An optional tray lets you temporarily choose one profile instead of automatic routing.
 
 ## Set up on Windows
 
@@ -75,6 +75,16 @@ To undo default-browser setup:
 
 Follow the Windows prompts to restore your previous HTTP/HTTPS choices before deleting or moving the application folder.
 
+## Set up on Linux
+
+Download `dynamicbrowser-linux-amd64` from a successful [Linux CI](https://github.com/MrMaxie/dynamicbrowser/actions/workflows/linux.yml) run. Unpack the `tar.gz` into a permanent directory. Verify the download with `sha256sum -c` and the supplied checksum file.
+
+Copy `config.example.yaml` to `${XDG_CONFIG_HOME:-$HOME/.config}/dynamicbrowser/config.yaml` and set the browser executables and profile arguments for Linux. Test the configuration with `./dynamicbrowser 'https://example.com'`.
+
+Install `xdg-utils`, then run `./dynamicbrowser --register` from a terminal and confirm to make it your default HTTP and HTTPS handler. Run `./dynamicbrowser --restore` before moving or removing the executable. Restoration preserves newer browser choices. If you already installed a `dynamicbrowser.desktop` entry manually, switch back to another browser and remove that manual entry before running `--register`.
+
+Run `./dynamicbrowser` without arguments to open the tray on a desktop with a compatible tray host. URL routing does not require the tray.
+
 ## Tray behavior
 
 URL invocations do not start a tray. If one is running, they use its temporary selection. Closing the tray does not disable later URL routing. Starting a second tray exits silently; `--force` replaces the running tray.
@@ -94,6 +104,20 @@ See [config.example.yaml](config.example.yaml). Replace its placeholder paths be
 A running tray reloads valid edits, including atomic file replacement. Invalid edits retain the last valid configuration. Only available browsers appear in the menu, in YAML declaration order.
 
 When missing, the application creates an empty `config.yaml` and a local `config.schema.json`, preserving existing files. The example and newly created YAML include a modeline for YAML language servers. Additional top-level fields are allowed; known fields and nested properties are validated.
+
+### Source rules on Linux
+
+Two optional booleans in `config.yaml` default to `true` on Linux. Windows ignores them and continues matching the process name and window title separately.
+
+- `window-as-process`: lets `source.window` match the same launcher process name as `source.process` when that name is known. It does not match a window title.
+- `active-window-fallback`: when the launcher process is unknown and no ordinary rule matches, dynamicbrowser tries `source.window` against the active window's class on Hyprland (`hyprctl` must be available). It does not use the class for `source.process`. This is a guess: a focus change or a link opened in the background can point to the wrong window. If the lookup is unavailable or no rule matches, routing uses `default`.
+
+Set either option to `false` to disable it independently:
+
+```yaml
+active-window-fallback: false
+window-as-process: false
+```
 
 ## Default browser on Windows
 
@@ -118,7 +142,7 @@ mise install
 mise exec -- just build
 ```
 
-The executable is created in `bin/`. Follow the setup instructions above using that folder: copy `config.example.yaml` from the repository root to `bin/config.yaml`, customize it, then run commands from `bin/`. Configuration is always loaded beside the executable, regardless of the working directory.
+The executable is created in `bin/`. Follow the setup instructions above using that folder: copy `config.example.yaml` from the repository root to `bin/config.yaml`, customize it, then run commands from `bin/`. On Windows, configuration is always loaded beside the executable, regardless of the working directory. On Linux amd64, run `mise exec -- bash scripts/package-linux.sh` to build and smoke-test the archive and checksum in `dist/`.
 
 Developer checks and packaging:
 
@@ -136,12 +160,18 @@ mise exec -- just package
 
 Tool versions are pinned in `mise.toml`; Node.js is used by the OpenSpec CLI. In GoLand, open this directory as a Go project and use the pinned Go SDK. Application code lives in `cmd/` and `internal/`; Windows is the supported platform for default-browser setup.
 
+## Releasing
+
+For ordinary PRs, record user-facing changes under `Unreleased` in `CHANGELOG.md` using public OpenSpec `release.md` entries. A release PR must bump `VERSION` and add exactly one matching, non-empty `## [X.Y.Z] - YYYY-MM-DD` section. Use the planned release date and update it before tagging if the date changes. To check the PR locally, run `python3 scripts/release-contract.py --base origin/master`.
+
+After merging and checking CI, push a `vX.Y.Z` tag for the release commit on `master`. The release workflow checks the tag against `VERSION` and `CHANGELOG.md`, builds both platforms, verifies their checksums, and publishes the archives and checksums to GitHub Releases. The notes come from that version's changelog section, not the commit log. Merging a PR alone does not publish a release.
+
 ## Project sources
 
 - `VERSION`: application version embedded at build time. Use Semantic Versioning; update it for each release.
 - `todo.txt`: quick task intake.
 - `openspec/specs/`: accepted product and engineering requirements.
 - `openspec/changes/`: proposed changes and archived changes.
-- `arcantry.toml`: source configuration.
+- [`CHANGELOG.md`](CHANGELOG.md): user-facing release history based on OpenSpec `release.md` entries.
 
 Licensed under the [Apache License 2.0](LICENSE).

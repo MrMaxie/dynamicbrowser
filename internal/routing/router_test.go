@@ -33,17 +33,66 @@ func TestMatchingAndFallback(t *testing.T) {
 		source  Source
 		browser string
 	}{
-		{"https://example.com/work/item", Source{"EditorApp", "Document 1"}, "work"},
-		{"https://example.com/area/work/item", Source{"Viewer2", "Document 2"}, "work"},
-		{"http://example.com/work/item", Source{"EditorApp", "Document 1"}, "personal"},
-		{"https://other.example/work/item", Source{"EditorApp", "Document 1"}, "personal"},
-		{"https://example.com/work/item", Source{"EditorApp", "Other"}, "personal"},
+		{"https://example.com/work/item", Source{Process: "EditorApp", Window: "Document 1"}, "work"},
+		{"https://example.com/area/work/item", Source{Process: "Viewer2", Window: "Document 2"}, "work"},
+		{"http://example.com/work/item", Source{Process: "EditorApp", Window: "Document 1"}, "personal"},
+		{"https://other.example/work/item", Source{Process: "EditorApp", Window: "Document 1"}, "personal"},
+		{"https://example.com/work/item", Source{Process: "EditorApp", Window: "Other"}, "personal"},
 		{"https://example.com/work/item", Source{}, "personal"},
 	} {
 		browser, err := router.Select(tt.url, tt.source)
 		if err != nil || browser.Name != tt.browser {
 			t.Fatalf("selection = %q, %v; want %q", browser.Name, err, tt.browser)
 		}
+	}
+}
+
+func TestWindowHintIsLastRuleFallback(t *testing.T) {
+	cfg := configuration(t, "default: personal\nrules:\n  - browser: personal\n    source: {process: '*Slack*'}\n  - browser: work\n    source: {window: '*Slack*'}\n  - browser: personal\n    target: {domain: url.example}\n")
+	router := New(cfg, t.TempDir(), nil)
+	for _, tt := range []struct {
+		url, process, hint, browser, reason string
+	}{
+		{"https://example.test/", "", "com.slack.Slack", "work", "window-hint-rule-2"},
+		{"https://url.example/", "", "com.slack.Slack", "personal", "rule-3"},
+		{"https://example.test/", "Editor", "com.slack.Slack", "personal", "default"},
+		{"https://example.test/", "", "", "personal", "default"},
+	} {
+		source := Source{Process: tt.process, RequireKnown: true}
+		browser, reason, err := router.selectBrowser(tt.url, &source, func() string { return tt.hint })
+		if err != nil || browser.Name != tt.browser || reason != tt.reason {
+			t.Errorf("source %+v: got %q (%s), %v; want %q (%s)", source, browser.Name, reason, err, tt.browser, tt.reason)
+		}
+	}
+}
+
+func TestLinuxSourceSettings(t *testing.T) {
+	const rules = "default: personal\nrules:\n  - browser: work\n    source: {window: '*Slack*'}\n"
+	for _, tt := range []struct {
+		name, settings string
+		source         Source
+		want           string
+		lookup         bool
+	}{
+		{"alias on by default", "", Source{Process: "Slack", RequireKnown: true}, "work", false},
+		{"alias off", "window-as-process: false\n", Source{Process: "Slack", RequireKnown: true}, "personal", false},
+		{"hint on with alias off", "window-as-process: false\n", Source{RequireKnown: true}, "work", true},
+		{"hint off", "active-window-fallback: false\n", Source{RequireKnown: true}, "personal", false},
+		{"alias on with hint off", "active-window-fallback: false\n", Source{Process: "Slack", RequireKnown: true}, "work", false},
+		{"native window unaffected", "window-as-process: false\nactive-window-fallback: false\n", Source{Process: "other", Window: "Slack"}, "work", false},
+		{"no hint outside Linux", "active-window-fallback: true\nwindow-as-process: true\n", Source{Process: "Slack"}, "personal", false},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			router := New(configuration(t, tt.settings+rules), t.TempDir(), nil)
+			called := false
+			browser, _, err := router.selectBrowser("https://example.test/", &tt.source, func() string {
+				called = true
+				return "com.slack.Slack"
+			})
+			if err != nil || browser.Name != tt.want || called != tt.lookup {
+				t.Fatalf("got %q, looked up=%t, err=%v; want %q, looked up=%t", browser.Name, called, err, tt.want, tt.lookup)
+			}
+		})
 	}
 }
 

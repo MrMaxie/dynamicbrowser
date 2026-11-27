@@ -5,13 +5,7 @@ package app
 import (
 	"os/exec"
 	"runtime"
-
-	"github.com/MrMaxie/dynamicbrowser/internal/routing"
 )
-
-func captureSource() routing.Source {
-	return routing.Source{}
-}
 
 func startCommand(executable string, args []string) error {
 	command := exec.Command(executable, args...)

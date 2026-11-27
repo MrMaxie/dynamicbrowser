@@ -10,10 +10,12 @@ import (
 )
 
 type Config struct {
-	Default   string
-	Autostart bool
-	Browsers  Browsers
-	Rules     []Rule
+	Default              string
+	Autostart            bool
+	ActiveWindowFallback *bool `yaml:"active-window-fallback"`
+	WindowAsProcess      *bool `yaml:"window-as-process"`
+	Browsers             Browsers
+	Rules                []Rule
 }
 
 type Browser struct {
@@ -136,6 +138,11 @@ func (p *Patterns) UnmarshalYAML(node *yaml.Node) error {
 		p.expressions = append(p.expressions, expression)
 	}
 	return nil
+}
+
+// MatchSource can require metadata for an explicitly configured source condition.
+func (p Patterns) MatchSource(value string, requireKnown bool) bool {
+	return (!requireKnown || value != "" || !p.present) && p.Match(value)
 }
 
 func (p Patterns) Match(value string) bool {
