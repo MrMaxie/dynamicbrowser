@@ -8,7 +8,7 @@ You do not need developer tools to use a packaged build. Any browser that accept
 
 ### 1. Download and unpack
 
-Download the Windows amd64 ZIP and its `.sha256` file from the [latest release](https://github.com/MrMaxie/dynamicbrowser/releases/latest). Unpack the ZIP into a permanent folder.
+Download `dynamicbrowser-X.Y.Z-windows-amd64.zip` and its matching `.zip.sha256` file from the [latest release](https://github.com/MrMaxie/dynamicbrowser/releases/latest), where `X.Y.Z` is the release version. Unpack the ZIP into a permanent folder.
 
 Keep the folder in place after registering dynamicbrowser as your default browser. For the commands below, open that folder in PowerShell (right-click inside it and choose **Open in Terminal**).
 
@@ -77,13 +77,13 @@ Follow the Windows prompts to restore your previous HTTP/HTTPS choices before de
 
 ## Set up on Linux
 
-Download the Linux amd64 `tar.gz` and its `.sha256` file from the [latest release](https://github.com/MrMaxie/dynamicbrowser/releases/latest). Verify the archive with `sha256sum -c` and the supplied checksum file, then unpack it into a permanent directory.
+Download `dynamicbrowser-X.Y.Z-linux-amd64.tar.gz` and its matching `.tar.gz.sha256` file from the [latest release](https://github.com/MrMaxie/dynamicbrowser/releases/latest), where `X.Y.Z` is the release version. Verify the archive with `sha256sum -c` and the supplied checksum file, then unpack it into a permanent directory. No root privileges are needed to install the application.
 
-Copy `config.example.yaml` to `${XDG_CONFIG_HOME:-$HOME/.config}/dynamicbrowser/config.yaml` and set the browser executables and profile arguments for Linux. Test the configuration with `./dynamicbrowser 'https://example.com'`.
+Copy `config.example.yaml` to `$XDG_CONFIG_HOME/dynamicbrowser/config.yaml`, creating the directory if needed. If `XDG_CONFIG_HOME` is unset or not an absolute path, use `$HOME/.config/dynamicbrowser/config.yaml` instead. Set the browser executables and profile arguments for Linux, then test the configuration with `./dynamicbrowser 'https://example.com'`.
 
 Install `xdg-utils`, then run `./dynamicbrowser --register` from a terminal and confirm to make it your default HTTP and HTTPS handler. Run `./dynamicbrowser --restore` before moving or removing the executable. Restoration preserves newer browser choices. If you already installed a `dynamicbrowser.desktop` entry manually, switch back to another browser and remove that manual entry before running `--register`.
 
-Run `./dynamicbrowser` without arguments to open the tray on a desktop with a compatible tray host. URL routing does not require the tray.
+Linux desktop setup and tray behavior were verified on KDE Plasma with Wayland. To open the tray, run `./dynamicbrowser` without arguments in a session with a StatusNotifierItem host, such as Plasma's system tray. URL routing works without a tray. Install `zenity` or `kdialog` for graphical error messages; otherwise errors are written to standard error.
 
 ## Tray behavior
 
@@ -106,6 +106,8 @@ A running tray reloads valid edits, including atomic file replacement. Invalid e
 When missing, the application creates an empty `config.yaml` and a local `config.schema.json`, preserving existing files. The example and newly created YAML include a modeline for YAML language servers. Additional top-level fields are allowed; known fields and nested properties are validated.
 
 ### Source rules on Linux
+
+On Linux, a desktop portal, URL opener, or shell may pass along the URL without identifying the app that opened it. An unknown source value does not match a source condition, even with `*`. URL-only rules and the configured default still work.
 
 Two optional booleans in `config.yaml` default to `true` on Linux. Windows ignores them and continues matching the process name and window title separately.
 
