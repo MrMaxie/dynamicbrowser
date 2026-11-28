@@ -8,7 +8,6 @@ import sys
 from datetime import date
 from pathlib import Path
 
-
 VERSION = r"(?:0|[1-9][0-9]*)(?:\.(?:0|[1-9][0-9]*)){2}"
 RELEASE = re.compile(rf"## \[({VERSION})\] - ([0-9]{{4}}-[0-9]{{2}}-[0-9]{{2}})")
 
@@ -37,7 +36,7 @@ def releases(changelog):
         visible = re.sub(r"<!--.*?-->", "", notes, flags=re.DOTALL)
         if not any(line.strip() and not line.lstrip().startswith("#") for line in visible.splitlines()):
             raise ValueError(f"changelog section {version} has no release notes")
-        result[version] = notes.strip()
+        result[version] = (heading, notes.strip())
     return result
 
 
@@ -48,13 +47,16 @@ def check_pr(old_version, version, old_releases, new_releases):
     expected = list(old_releases) if new == old else [version, *old_releases]
     if list(new_releases) != expected:
         raise ValueError("a VERSION bump requires exactly one matching new changelog section; otherwise change Unreleased only")
+    for released, section in old_releases.items():
+        if new_releases[released] != section:
+            raise ValueError(f"published changelog section {released} must not change")
 
 
 def release_notes(tag, version, sections):
     version_key(version)
     if tag != f"v{version}" or next(iter(sections), None) != version:
         raise ValueError("tag, VERSION and the newest changelog release must match")
-    return sections[version]
+    return sections[version][1]
 
 
 def git(*args):

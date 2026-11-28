@@ -24,7 +24,7 @@ func TestNewConfigHasLocalSchema(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if string(data) != initialConfiguration || len(store.values) != 0 || store.err != nil {
+	if got, err := store.Snapshot(); string(data) != initialConfiguration || got == nil || err != nil {
 		t.Fatal("new configuration is not an empty YAML mapping with a schema modeline")
 	}
 	data, err = os.ReadFile(filepath.Join(filepath.Dir(path), "config.schema.json"))

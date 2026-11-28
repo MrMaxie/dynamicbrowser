@@ -13,10 +13,11 @@ import (
 )
 
 type Source struct {
-	Process      string
-	Window       string
-	WindowHint   string `json:"-"`
-	RequireKnown bool   `json:",omitempty"`
+	Process         string
+	Window          string
+	WindowHint      string `json:"-"`
+	RequireKnown    bool   `json:",omitempty"`
+	ForegroundGuess bool   `json:"-"`
 }
 
 type Request struct {
@@ -123,6 +124,9 @@ func (r *Router) selectBrowser(raw string, source *Source, lookupWindow func() s
 	if browser, ok := findBrowser(browsers, forced); ok {
 		return browser, "override", nil
 	}
+	if source.ForegroundGuess && !configuration.GuessWindowsSource {
+		source.Process, source.Window = "", ""
+	}
 	domain := strings.ToLower(destination.Hostname())
 	match := func(window string) int {
 		for i, rule := range configuration.Rules {
@@ -133,12 +137,12 @@ func (r *Router) selectBrowser(raw string, source *Source, lookupWindow func() s
 		return -1
 	}
 	window := source.Window
-	if source.RequireKnown && enabled(configuration.WindowAsProcess) {
+	if source.RequireKnown && !source.ForegroundGuess && enabled(configuration.WindowAsProcess) {
 		window = source.Process
 	}
 	i := match(window)
 	reason := "rule"
-	if i < 0 && source.RequireKnown && source.Process == "" && enabled(configuration.ActiveWindowFallback) && lookupWindow != nil {
+	if i < 0 && source.RequireKnown && !source.ForegroundGuess && source.Process == "" && enabled(configuration.ActiveWindowFallback) && lookupWindow != nil {
 		if source.WindowHint = lookupWindow(); source.WindowHint != "" {
 			i = match(source.WindowHint)
 			reason = "window-hint-rule"

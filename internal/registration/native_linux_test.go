@@ -8,7 +8,7 @@ import (
 )
 
 func TestLinuxSetup(t *testing.T) {
-	for _, scenario := range []string{"restore", "preserve independent choice", "decline", "missing previous", "partial", "manual entry"} {
+	for _, scenario := range []string{"restore", "preserve independent choice", "decline", "missing previous", "partial", "manual entry", "corrupt recovery after manual switch"} {
 		t.Run(scenario, func(t *testing.T) {
 			dir := t.TempDir()
 			const http, https = "x-scheme-handler/http", "x-scheme-handler/https"
@@ -73,6 +73,15 @@ func TestLinuxSetup(t *testing.T) {
 			if scenario == "preserve independent choice" {
 				wantHTTPS = "newer.desktop"
 				current[https] = wantHTTPS
+			}
+			if scenario == "corrupt recovery after manual switch" {
+				if err := os.WriteFile(s.snapshot, []byte("broken JSON"), 0600); err != nil {
+					t.Fatal(err)
+				}
+				if err := s.restore(); err == nil || current[http] != linuxDesktopID || current[https] != linuxDesktopID {
+					t.Fatalf("invalid snapshot must not change defaults: %v, %#v", err, current)
+				}
+				current[http], current[https] = "first.desktop", wantHTTPS
 			}
 			if err := s.restore(); err != nil || current[http] != "first.desktop" || current[https] != wantHTTPS {
 				t.Fatalf("restore: %v, %#v", err, current)

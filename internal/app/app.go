@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -35,13 +36,16 @@ func Run(options Options) error {
 		return err
 	}
 	defer release()
+	if err := checkTrayHost(); err != nil {
+		return err
+	}
 	path, err := config.Path()
 	if err != nil {
 		return err
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	store := &config.Store{}
-	changes := store.Changes()
+	store.Changes() // Subscribe before the watcher can publish a change.
 	done, err := config.Watch(ctx, path, store)
 	if err != nil {
 		cancel()
@@ -57,10 +61,6 @@ func Run(options Options) error {
 		return err
 	}
 	updateAutostart := autostartUpdater(configureAutostart)
-	select {
-	case <-changes:
-	default:
-	}
 
 	var stopControl, stopRouting func()
 	defer func() {
@@ -99,11 +99,8 @@ func Run(options Options) error {
 func runTray(parent context.Context, closeTray context.CancelFunc, store *config.Store, router *routing.Router, path string, updateAutostart func(bool) error, ready func() error, version string) error {
 	ctx, cancel := context.WithCancel(parent)
 	defer cancel()
-	configuration, loadErr := store.Snapshot()
-	if loadErr == nil {
-		router.Update(configuration)
-		loadErr = updateAutostart(configuration.Autostart)
-	}
+	apply := trayConfigUpdater(router, updateAutostart)
+	_, loadErr := apply(store.Snapshot())
 	// The native window and its message loop must use the same OS thread.
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
@@ -135,21 +132,16 @@ func runTray(parent context.Context, closeTray context.CancelFunc, store *config
 			case <-ctx.Done():
 				return
 			case <-store.Changes():
-				next, loadErr := store.Snapshot()
-				valid := loadErr == nil
-				if valid {
-					router.Update(next)
-					loadErr = updateAutostart(next.Autostart)
-					if runtime.GOOS == "linux" {
-						// systray reuses positional DBus IDs on SetMenu. A new service prevents
-						// clicks from an old displayed menu activating a different new action.
-						remove()
-						return
-					}
+				changed, loadErr := apply(store.Snapshot())
+				if changed && runtime.GOOS == "linux" {
+					// systray reuses positional DBus IDs on SetMenu. A new service prevents
+					// clicks from an old displayed menu activating a different new action.
+					remove()
+					return
 				}
 				if err := dispatchTrayUpdate(ctx, dispatch, func() {
 					setTrayTooltip(tray, loadErr)
-					if valid {
+					if changed {
 						tray.SetMenu(newTrayMenu(ctx, router, edit, closeTray, version).menu)
 					}
 				}); err != nil {
@@ -166,6 +158,21 @@ func runTray(parent context.Context, closeTray context.CancelFunc, store *config
 		return err
 	}
 	return tray.Run()
+}
+
+// The snapshot and its current load error can come from different edits.
+func trayConfigUpdater(router *routing.Router, updateAutostart func(bool) error) func(*config.Config, error) (bool, error) {
+	var applied *config.Config
+	var autostartErr error
+	return func(next *config.Config, loadErr error) (bool, error) {
+		changed := next != nil && next != applied
+		if changed {
+			router.Update(next)
+			applied = next
+			autostartErr = updateAutostart(next.Autostart)
+		}
+		return changed, errors.Join(loadErr, autostartErr)
+	}
 }
 
 func setTrayTooltip(tray *systray.SystemTray, err error) {
@@ -221,6 +228,10 @@ func routingHandler(router *routing.Router) func(routing.Request) error {
 		}
 	}
 	return func(request routing.Request) error {
+		if runtime.GOOS == "windows" {
+			// Older clients also sent foreground metadata, but did not flag it.
+			request.Source.ForegroundGuess, request.Source.RequireKnown = true, true
+		}
 		return router.OpenObserved(request, activeWindowHint, observe)
 	}
 }
@@ -251,7 +262,7 @@ func routeOnDemand(request routing.Request) error {
 			if err != nil {
 				return err
 			}
-			return openWithAutostart(configuration.Autostart, configureAutostart, func() error {
+			return openWithAutostart(configuration.Autostart, configureAutostart, os.Stderr, func() error {
 				return routingHandler(router)(request)
 			})
 		}
@@ -262,9 +273,11 @@ func routeOnDemand(request routing.Request) error {
 	}
 }
 
-func openWithAutostart(enabled bool, register func(bool) error, open func() error) error {
-	registrationErr := register(enabled)
-	return errors.Join(open(), registrationErr)
+func openWithAutostart(enabled bool, register func(bool) error, warnings io.Writer, open func() error) error {
+	if err := register(enabled); err != nil {
+		_, _ = fmt.Fprintf(warnings, "dynamicbrowser: %v\n", err)
+	}
+	return open()
 }
 
 func trayQuit(cancel context.CancelFunc, updatesDone <-chan struct{}, remove func()) func() {

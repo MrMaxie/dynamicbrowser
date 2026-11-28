@@ -18,7 +18,6 @@ import (
 // Store retains the last valid YAML configuration.
 type Store struct {
 	mu      sync.RWMutex
-	values  map[string]any
 	config  *Config
 	err     error
 	changes chan struct{}
@@ -58,7 +57,6 @@ func (c *Store) reload(path string) {
 	defer c.mu.Unlock()
 	c.err = err
 	if err == nil {
-		c.values = values
 		c.config = configuration
 	}
 	c.notifyLocked()
@@ -103,16 +101,6 @@ func parse(data []byte) (map[string]any, error) {
 		return nil, errors.New("configuration must contain only one YAML document")
 	}
 	return values, nil
-}
-
-// Status describes the current configuration health for the tray UI.
-func (c *Store) Status() string {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
-	if c.err != nil {
-		return "Configuration: error (last valid configuration retained)"
-	}
-	return "Configuration: loaded"
 }
 
 // Watch loads the configuration and watches for changes until ctx is canceled.
