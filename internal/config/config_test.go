@@ -31,23 +31,20 @@ func TestWatchConfig(t *testing.T) {
 		t.Helper()
 		deadline := time.Now().Add(5 * time.Second)
 		for time.Now().Before(deadline) {
-			store.mu.RLock()
-			got := store.values["custom"]
-			hasErr := store.err != nil
-			store.mu.RUnlock()
-			if got == want && hasErr == wantErr {
+			got, err := store.Snapshot()
+			if got != nil && got.Default == want && (err != nil) == wantErr {
 				return
 			}
 			time.Sleep(20 * time.Millisecond)
 		}
 		t.Fatalf("config did not reach %q, error=%v", want, wantErr)
 	}
-	write(path, "custom: first\nanything:\n  list: [1, 2]\n")
+	write(path, "default: first\nanything:\n  list: [1, 2]\n")
 	wait("first", false)
 	write(path, "invalid: [")
 	wait("first", true)
 	replacement := filepath.Join(filepath.Dir(path), "replacement.yaml")
-	write(replacement, "custom: second\n")
+	write(replacement, "default: second\n")
 	if err := os.Rename(replacement, path); err != nil {
 		t.Fatal(err)
 	}
@@ -56,7 +53,7 @@ func TestWatchConfig(t *testing.T) {
 		t.Fatal(err)
 	}
 	wait("second", true)
-	write(path, "custom: third\n")
+	write(path, "default: third\n")
 	wait("third", false)
 }
 
@@ -70,7 +67,7 @@ func TestConfigChanges(t *testing.T) {
 	default:
 		t.Fatal("missing error notification")
 	}
-	if store.Status() != "Configuration: error (last valid configuration retained)" {
+	if _, err := store.Snapshot(); err == nil {
 		t.Fatal("missing configuration error status")
 	}
 	if err := os.WriteFile(path, []byte("custom: true\n"), 0600); err != nil {
@@ -88,7 +85,7 @@ func TestConfigChanges(t *testing.T) {
 		t.Fatal("reload notifications were not coalesced")
 	default:
 	}
-	if store.Status() != "Configuration: loaded" {
+	if _, err := store.Snapshot(); err != nil {
 		t.Fatal("configuration did not recover")
 	}
 }
@@ -112,7 +109,7 @@ func TestConfigPreservesExistingFile(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if string(data) != content || store.values["arbitrary"] != true {
+	if got, err := store.Snapshot(); string(data) != content || got == nil || err != nil {
 		t.Fatal("existing config changed or was not loaded")
 	}
 }

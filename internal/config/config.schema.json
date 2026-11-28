@@ -22,6 +22,11 @@
       "default": true,
       "description": "Linux only: let source.window match the known launcher process name."
     },
+    "guess-windows-source": {
+      "type": "boolean",
+      "default": false,
+      "description": "Windows only: guess the source from the focused window. A focus change can send links to the wrong profile."
+    },
     "browsers": {
       "type": "object",
       "additionalProperties": {

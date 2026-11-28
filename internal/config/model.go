@@ -14,6 +14,7 @@ type Config struct {
 	Autostart            bool
 	ActiveWindowFallback *bool `yaml:"active-window-fallback"`
 	WindowAsProcess      *bool `yaml:"window-as-process"`
+	GuessWindowsSource   bool  `yaml:"guess-windows-source"`
 	Browsers             Browsers
 	Rules                []Rule
 }

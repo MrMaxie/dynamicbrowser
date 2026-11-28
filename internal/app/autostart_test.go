@@ -1,16 +1,19 @@
 package app
 
 import (
+	"bytes"
 	"errors"
+	"strings"
 	"testing"
 )
 
 func TestRoutingSurvivesAutostartFailure(t *testing.T) {
 	failure := errors.New("startup registration denied")
 	opened := false
-	err := openWithAutostart(true, func(bool) error { return failure }, func() error { opened = true; return nil })
-	if !opened || !errors.Is(err, failure) {
-		t.Fatal("registration failure blocked routing or was discarded")
+	var warnings bytes.Buffer
+	err := openWithAutostart(true, func(bool) error { return failure }, &warnings, func() error { opened = true; return nil })
+	if !opened || err != nil || !strings.Contains(warnings.String(), failure.Error()) {
+		t.Fatalf("opened=%t, error=%v, warnings=%q", opened, err, warnings.String())
 	}
 }
 

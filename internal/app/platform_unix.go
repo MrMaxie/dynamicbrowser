@@ -19,6 +19,16 @@ func acquireInstance() (func(), bool, error) {
 }
 
 func instanceDirectory() (string, error) {
+	if runtime.GOOS == "linux" {
+		if base := os.Getenv("XDG_RUNTIME_DIR"); filepath.IsAbs(base) {
+			dir := filepath.Join(base, "dynamicbrowser")
+			if len(dir)+len("/0123456789abcdef.sock.routing") <= 107 && privateRuntimeDir(base) == nil {
+				return dir, ensureRuntimeDir(dir)
+			}
+		}
+		dir := fmt.Sprintf("/tmp/dynamicbrowser-%d", os.Geteuid())
+		return dir, ensureRuntimeDir(dir)
+	}
 	cache, err := os.UserCacheDir()
 	if err != nil {
 		return "", err
@@ -28,6 +38,24 @@ func instanceDirectory() (string, error) {
 		return "", err
 	}
 	return dir, nil
+}
+
+func ensureRuntimeDir(dir string) error {
+	if err := os.Mkdir(dir, 0700); err != nil && !errors.Is(err, os.ErrExist) {
+		return err
+	}
+	return privateRuntimeDir(dir)
+}
+
+func privateRuntimeDir(dir string) error {
+	var stat unix.Stat_t
+	if err := unix.Lstat(dir, &stat); err != nil {
+		return err
+	}
+	if stat.Mode&unix.S_IFMT != unix.S_IFDIR || stat.Uid != uint32(os.Geteuid()) || stat.Mode&0077 != 0 {
+		return fmt.Errorf("instance directory %q must be private and owned by the current user", dir)
+	}
+	return nil
 }
 
 func acquireNamedInstance(identity string) (func(), bool, error) {

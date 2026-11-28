@@ -42,15 +42,16 @@ func TestParseYAML(t *testing.T) {
 func TestInvalidYAMLRetainsLastValidConfiguration(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "config.yaml")
 	store := &Store{}
-	for _, content := range []string{"custom: first\n", "custom: second\n---\nignored: true\n", "custom: second\ncustom: third\n"} {
+	for i, content := range []string{"default: first\n", "default: second\n---\nignored: true\n", "default: second\ndefault: third\n"} {
 		if err := os.WriteFile(path, []byte(content), 0600); err != nil {
 			t.Fatal(err)
 		}
 		store.reload(path)
-		if store.values["custom"] != "first" {
+		got, err := store.Snapshot()
+		if got == nil || got.Default != "first" {
 			t.Fatal("invalid YAML replaced the last valid configuration")
 		}
-		if content != "custom: first\n" && store.err == nil {
+		if i != 0 && err == nil {
 			t.Fatal("invalid YAML did not report an error")
 		}
 	}

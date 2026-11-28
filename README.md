@@ -83,7 +83,7 @@ Copy `config.example.yaml` to `$XDG_CONFIG_HOME/dynamicbrowser/config.yaml`, cre
 
 Install `xdg-utils`, then run `./dynamicbrowser --register` from a terminal and confirm to make it your default HTTP and HTTPS handler. Run `./dynamicbrowser --restore` before moving or removing the executable. Restoration preserves newer browser choices. If you already installed a `dynamicbrowser.desktop` entry manually, switch back to another browser and remove that manual entry before running `--register`.
 
-Linux desktop setup and tray behavior were verified on KDE Plasma with Wayland. To open the tray, run `./dynamicbrowser` without arguments in a session with a StatusNotifierItem host, such as Plasma's system tray. URL routing works without a tray. Install `zenity` or `kdialog` for graphical error messages; otherwise errors are written to standard error.
+Linux desktop setup and tray behavior were verified on KDE Plasma with Wayland. To open the tray, run `./dynamicbrowser` without arguments in a session with a StatusNotifierItem host, such as Plasma's system tray. Without a host, tray startup reports an error, but URL routing still works. Close any running tray before replacing an older installation. Install `zenity` or `kdialog` for graphical error messages; otherwise errors are written to standard error.
 
 ## Tray behavior
 
@@ -104,6 +104,10 @@ See [config.example.yaml](config.example.yaml). Replace its placeholder paths be
 A running tray reloads valid edits, including atomic file replacement. Invalid edits retain the last valid configuration. Only available browsers appear in the menu, in YAML declaration order.
 
 When missing, the application creates an empty `config.yaml` and a local `config.schema.json`, preserving existing files. The example and newly created YAML include a modeline for YAML language servers. Additional top-level fields are allowed; known fields and nested properties are validated.
+
+### Source rules on Windows
+
+Windows link launches do not identify the originating app. By default, unavailable source values do not match a source condition, even with `*`. URL rules and tray overrides still work. Set `guess-windows-source: true` in `config.yaml` to use the focused process and window title as a guess instead. A focus change or a link opened in the background can send it to the wrong profile.
 
 ### Source rules on Linux
 

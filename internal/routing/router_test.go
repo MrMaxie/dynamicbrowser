@@ -96,6 +96,21 @@ func TestLinuxSourceSettings(t *testing.T) {
 	}
 }
 
+func TestWindowsSourceGuessRequiresOptIn(t *testing.T) {
+	const rules = "default: personal\nrules:\n  - browser: work\n    source: {process: '*', window: 'Document*'}\n"
+	source := Source{Process: "Editor", Window: "Document 1", RequireKnown: true, ForegroundGuess: true}
+	for _, tt := range []struct{ setting, want string }{
+		{"", "personal"},
+		{"guess-windows-source: true\n", "work"},
+	} {
+		router := New(configuration(t, tt.setting+rules), t.TempDir(), nil)
+		browser, err := router.Select("https://example.test/", source)
+		if err != nil || browser.Name != tt.want {
+			t.Fatalf("setting %q: browser=%q, err=%v; want %q", tt.setting, browser.Name, err, tt.want)
+		}
+	}
+}
+
 func TestDefaultOnlyWhenNeeded(t *testing.T) {
 	cfg := configuration(t, "rules:\n  - browser: work\n    target:\n      domain: example.com\n")
 	router := New(cfg, t.TempDir(), nil)

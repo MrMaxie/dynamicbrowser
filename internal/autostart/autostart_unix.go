@@ -10,6 +10,8 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+
+	"github.com/MrMaxie/dynamicbrowser/internal/config"
 )
 
 func Set(identity, executable string, enabled bool) error {
@@ -23,7 +25,7 @@ func Set(identity, executable string, enabled bool) error {
 		path = filepath.Join(home, "Library", "LaunchAgents", identity+".plist")
 		content = launchAgent(identity, executable)
 	} else {
-		dir, err := os.UserConfigDir()
+		dir, err := config.LinuxConfigHome()
 		if err != nil {
 			return err
 		}

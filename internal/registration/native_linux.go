@@ -243,10 +243,8 @@ func (s linuxSetup) restore() error {
 	if err != nil {
 		return err
 	}
-	saved, _, err := s.previous()
-	if err != nil {
-		return err
-	}
+	var saved map[string]string
+	loaded := false
 	for _, scheme := range linuxSchemes {
 		id, err := s.current(scheme)
 		if err != nil {
@@ -254,6 +252,13 @@ func (s linuxSetup) restore() error {
 		}
 		if id != linuxDesktopID {
 			continue
+		}
+		if !loaded {
+			saved, _, err = s.previous()
+			if err != nil {
+				return err
+			}
+			loaded = true
 		}
 		if !s.available(saved[scheme]) {
 			return fmt.Errorf("previous %s handler is missing; choose a browser in desktop settings, then run --restore again", scheme)

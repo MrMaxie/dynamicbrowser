@@ -32,6 +32,14 @@ class ReleaseContractTests(unittest.TestCase):
             with self.subTest(before=before, after=after, proposed=list(proposed)), self.assertRaises(ValueError):
                 check_pr(before, after, base, proposed)
 
+    def test_pr_must_preserve_released_dates_and_notes(self):
+        old = releases(PREAMBLE + FIRST)
+        for edited in (FIRST.replace("- Linux builds.", "- Other notes."),
+                       FIRST.replace("2026-11-27", "2026-11-28")):
+            for version, extra in (("1.0.0", ""), ("1.0.1", SECOND)):
+                with self.subTest(edited=edited, version=version), self.assertRaises(ValueError):
+                    check_pr("1.0.0", version, old, releases(PREAMBLE + extra + edited))
+
     def test_invalid_release_sections(self):
         for body in (FIRST + FIRST, FIRST + SECOND,
                      FIRST.replace("2026-11-27", "2026-02-30"),

@@ -15,6 +15,7 @@ import (
 const (
 	maxRoutingBytes = 1 << 20
 	maxRoutingURLs  = 256
+	routingWorkers  = 4
 )
 
 func startRoutingControl(open func(routing.Request) error) (func(), error) {
@@ -25,12 +26,25 @@ func startRoutingControl(open func(routing.Request) error) (func(), error) {
 	done := make(chan struct{})
 	go func() {
 		defer close(done)
+		var workers sync.WaitGroup
+		defer workers.Wait()
+		slots := make(chan struct{}, routingWorkers)
 		for {
 			conn, err := listener.Accept()
 			if err != nil {
 				return
 			}
-			handleRouting(conn, open)
+			select {
+			case slots <- struct{}{}:
+				workers.Go(func() {
+					defer func() { <-slots }()
+					handleRouting(conn, open)
+				})
+			default:
+				serveRouting(conn, 200*time.Millisecond, func(routing.Request) error {
+					return errors.New("tray is busy; try opening the link again")
+				})
+			}
 		}
 	}()
 	var once sync.Once
@@ -40,8 +54,12 @@ func startRoutingControl(open func(routing.Request) error) (func(), error) {
 }
 
 func handleRouting(conn net.Conn, open func(routing.Request) error) {
+	serveRouting(conn, 3*time.Second, open)
+}
+
+func serveRouting(conn net.Conn, timeout time.Duration, open func(routing.Request) error) {
 	defer func() { _ = conn.Close() }()
-	_ = conn.SetDeadline(time.Now().Add(3 * time.Second))
+	_ = conn.SetDeadline(time.Now().Add(timeout))
 	var request routing.Request
 	decoder := json.NewDecoder(io.LimitReader(conn, maxRoutingBytes))
 	decoder.DisallowUnknownFields()
